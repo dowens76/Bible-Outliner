@@ -56,6 +56,8 @@ function setupEventListeners() {
   document.getElementById('exportHtmlBtn').addEventListener('click', () => exportOutline('html'));
   document.getElementById('exportXmlBtn').addEventListener('click', () => exportOutline('xml'));
   document.getElementById('exportJsonBtn').addEventListener('click', () => exportOutline('json'));
+  document.getElementById('exportWordBtn').addEventListener('click', () => exportOutline('word'));
+  document.getElementById('exportPdfBtn').addEventListener('click', () => exportOutline('pdf'));
   
   // Import
   document.getElementById('importBtn').addEventListener('click', openImportModal);
@@ -447,10 +449,18 @@ async function exportOutline(format) {
       content = generateJSONExport(headingsWithRanges);
       filename = 'bible-outline.json';
       mimeType = 'application/json';
+    } else if (format === 'word') {
+      content = generateWordExport(headingsWithRanges);
+      filename = 'bible-outline.doc';
+      mimeType = 'application/msword';
+    } else if (format === 'pdf') {
+      await exportAsPDF(headingsWithRanges);
+      closeExportModal();
+      return;
     }
-    
+
     console.log('Generated content length:', content.length);
-    
+
     // Download file
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -459,7 +469,7 @@ async function exportOutline(format) {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     console.log('Export complete');
     closeExportModal();
   } catch (error) {
@@ -543,6 +553,83 @@ function generateJSONExport(headings) {
   }));
   
   return JSON.stringify(data, null, 2);
+}
+
+// Generate Word (.doc) export — Word-compatible HTML format
+function generateWordExport(headings) {
+  let body = `<h1 style="border-bottom:2px solid #8B4513;padding-bottom:8px;">Bible Outline</h1>\n`;
+  body += `<p><em>Generated on ${new Date().toLocaleDateString()}</em></p>\n`;
+
+  headings.forEach(heading => {
+    const startDisplay = db.formatReference(heading.startRef);
+    const endDisplay = heading.endRef !== heading.startRef ?
+      `–${db.formatReference(heading.endRef)}` : '';
+    body += `<h${heading.level}>${escapeXML(heading.text)} <span style="color:#999;font-size:0.85em;">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+  });
+
+  return `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+  xmlns:w="urn:schemas-microsoft-com:office:word"
+  xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<title>Bible Outline</title>
+<style>
+  body  { font-family: Calibri, sans-serif; font-size: 11pt; }
+  h1    { font-size: 20pt; color: #5C2008; }
+  h2    { font-size: 16pt; color: #7B3410; }
+  h3    { font-size: 14pt; color: #A0522D; }
+  h4    { font-size: 13pt; color: #C07840; }
+  h5    { font-size: 12pt; color: #9E7B50; }
+  h6    { font-size: 11pt; color: #8B8AA0; }
+</style>
+</head>
+<body>${body}</body>
+</html>`;
+}
+
+// Open a print-ready page in a new tab so the user can save as PDF
+async function exportAsPDF(headings) {
+  let body = '';
+  headings.forEach(heading => {
+    const startDisplay = db.formatReference(heading.startRef);
+    const endDisplay = heading.endRef !== heading.startRef ?
+      `–${db.formatReference(heading.endRef)}` : '';
+    body += `<h${heading.level}>${escapeXML(heading.text)} <span class="ref">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bible Outline</title>
+  <style>
+    body  { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 24px; line-height: 1.7; color: #222; }
+    h1    { font-size: 22pt; color: #5C2008; border-bottom: 2px solid #8B4513; padding-bottom: 8px; }
+    h2    { font-size: 16pt; color: #7B3410; }
+    h3    { font-size: 14pt; color: #A0522D; }
+    h4    { font-size: 13pt; color: #C07840; }
+    h5    { font-size: 12pt; color: #9E7B50; }
+    h6    { font-size: 11pt; color: #8B8AA0; }
+    .ref  { color: #999; font-size: 0.82em; font-family: monospace; }
+    @media print {
+      body { margin: 0; max-width: none; }
+      @page { margin: 2cm; }
+    }
+  </style>
+  <script>window.addEventListener('load', () => window.print());<\/script>
+</head>
+<body>
+  <h1>Bible Outline</h1>
+  <p><em>Generated on ${new Date().toLocaleDateString()}</em></p>
+  ${body}
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  await chrome.tabs.create({ url });
+  // Revoke after enough time for the tab to load
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 // Escape XML special characters
