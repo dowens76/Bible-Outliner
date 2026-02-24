@@ -148,7 +148,7 @@ Standard OSIS abbreviations are used throughout.
 
 ### Why IndexedDB?
 
-Browser extensions cannot use SQLite. IndexedDB is the browser's built-in database and provides persistent, indexed, transactional storage with an async API.
+IndexedDB is the browser's built-in database and provides persistent, indexed, transactional storage with an async API.
 
 ### StepBible Integration
 
@@ -182,8 +182,6 @@ Built for Brave; works in any Chromium-based browser:
 
 **Export not downloading:** Check if your browser is blocking downloads and allow them in browser settings.
 
-**ODT won't open in LibreOffice:** Ensure you are using an export from the current version of the extension.
-
 ## Privacy
 
 - All data is stored locally in your browser
@@ -197,4 +195,4 @@ MIT License — free to use, modify, and distribute.
 
 ## Credits
 
-Created for biblical study and exegesis. Designed to work with [StepBible.org](https://www.stepbible.org/), an excellent free online Bible study tool.
+Created for biblical study and exegesis. Designed to work with [StepBible.org](https://www.stepbible.org/).
