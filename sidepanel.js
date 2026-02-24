@@ -16,6 +16,20 @@ function getBooksToLoad(bookCode) {
   return BOOK_GROUPS[bookCode] || [bookCode];
 }
 
+// Group a sorted headings array by book, preserving order
+function groupHeadingsByBook(headings) {
+  const groups = [];
+  let lastCode = null;
+  for (const h of headings) {
+    if (h.book !== lastCode) {
+      lastCode = h.book;
+      groups.push({ bookCode: h.book, bookName: getBookName(h.book), headings: [] });
+    }
+    groups[groups.length - 1].headings.push(h);
+  }
+  return groups;
+}
+
 let currentBook = null;
 let currentHeadings = [];
 let selectedHeadingLevel = 1;
@@ -428,10 +442,15 @@ function closeImportModal() {
 async function exportOutline(format) {
   console.log('Export outline called, format:', format);
   try {
-    const allHeadings = await db.getAllHeadings();
-    console.log('Retrieved headings for export:', allHeadings);
-    
-    const headingsWithRanges = db.calculateVerseRanges(allHeadings);
+    const scope = document.querySelector('input[name="exportScope"]:checked')?.value ?? 'all';
+    let rawHeadings;
+    if (scope === 'current' && currentBook) {
+      rawHeadings = await db.getHeadingsByBooks(getBooksToLoad(currentBook));
+    } else {
+      rawHeadings = await db.getAllHeadings();
+    }
+
+    const headingsWithRanges = db.calculateVerseRanges(rawHeadings);
     console.log('Headings with ranges:', headingsWithRanges);
     
     let content;
@@ -486,6 +505,8 @@ async function exportOutline(format) {
 
 // Generate HTML export
 function generateHTMLExport(headings) {
+  const groups = groupHeadingsByBook(headings);
+
   let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -494,69 +515,73 @@ function generateHTMLExport(headings) {
   <title>Bible Outline</title>
   <style>
     body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
-    h1 { color: #333; border-bottom: 3px solid #8B4513; padding-bottom: 10px; }
-    h2 { color: #444; margin-top: 30px; }
-    h3 { color: #555; margin-top: 25px; }
-    h4 { color: #666; margin-top: 20px; }
-    h5 { color: #777; margin-top: 15px; }
-    h6 { color: #888; margin-top: 10px; }
+    .book-title { font-size: 1.5em; font-weight: 700; color: #5C2008; border-bottom: 3px solid #8B4513; padding-bottom: 8px; margin-top: 48px; }
+    h1 { color: #5C2008; } h2 { color: #7B3410; } h3 { color: #A0522D; }
+    h4 { color: #C07840; } h5 { color: #9E7B50; } h6 { color: #8B8AA0; }
     .reference { color: #999; font-size: 0.9em; font-family: monospace; }
   </style>
 </head>
 <body>
-  <h1>Bible Outline</h1>
+  <h1 style="border-bottom:3px solid #8B4513;padding-bottom:10px;">Bible Outline</h1>
   <p><em>Generated on ${new Date().toLocaleDateString()}</em></p>
 `;
-  
-  headings.forEach(heading => {
-    const startDisplay = db.formatReference(heading.startRef);
-    const endDisplay = heading.endRef !== heading.startRef ? 
-      `–${db.formatReference(heading.endRef)}` : '';
-    
-    html += `  <h${heading.level}>${heading.text} <span class="reference">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
-  });
-  
-  html += `</body>
-</html>`;
-  
+
+  for (const group of groups) {
+    html += `  <p class="book-title">${group.bookName}</p>\n`;
+    for (const heading of group.headings) {
+      const startDisplay = db.formatReference(heading.startRef);
+      const endDisplay = heading.endRef !== heading.startRef ?
+        `–${db.formatReference(heading.endRef)}` : '';
+      html += `  <h${heading.level}>${heading.text} <span class="reference">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+    }
+  }
+
+  html += `</body>\n</html>`;
   return html;
 }
 
 // Generate XML export
 function generateXMLExport(headings) {
+  const groups = groupHeadingsByBook(headings);
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <outline>
   <metadata>
     <generated>${new Date().toISOString()}</generated>
   </metadata>
-  <headings>
+  <books>
 `;
-  
-  headings.forEach(heading => {
-    xml += `    <heading level="${heading.level}" book="${heading.book}" start="${heading.startRef}" end="${heading.endRef}">
-      <text>${escapeXML(heading.text)}</text>
-      <reference>${heading.reference}</reference>
-    </heading>
-`;
-  });
-  
-  xml += `  </headings>
-</outline>`;
-  
+
+  for (const group of groups) {
+    xml += `    <book code="${group.bookCode}" name="${escapeXML(group.bookName)}">\n`;
+    for (const heading of group.headings) {
+      xml += `      <heading level="${heading.level}" start="${heading.startRef}" end="${heading.endRef}">
+        <text>${escapeXML(heading.text)}</text>
+        <reference>${heading.reference}</reference>
+      </heading>\n`;
+    }
+    xml += `    </book>\n`;
+  }
+
+  xml += `  </books>\n</outline>`;
   return xml;
 }
 
-// Generate JSON export
+// Generate JSON export (grouped by book; import handles both flat and grouped)
 function generateJSONExport(headings) {
-  const data = headings.map(heading => ({
-    text: heading.text,
-    level: heading.level,
-    reference: heading.reference,
-    book: heading.book,
-    startRef: heading.startRef,
-    endRef: heading.endRef
+  const groups = groupHeadingsByBook(headings);
+  const data = groups.map(group => ({
+    book: group.bookCode,
+    bookName: group.bookName,
+    headings: group.headings.map(h => ({
+      text: h.text,
+      level: h.level,
+      reference: h.reference,
+      book: h.book,
+      startRef: h.startRef,
+      endRef: h.endRef
+    }))
   }));
-  
   return JSON.stringify(data, null, 2);
 }
 
@@ -694,6 +719,15 @@ function generateDocxExport(headings) {
     <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
     <w:sz w:val="22"/>
   </w:rPr></w:rPrDefault></w:docDefaults>
+  <w:style w:type="paragraph" w:styleId="BookTitle">
+    <w:name w:val="Book Title"/>
+    <w:pPr><w:spacing w:before="480" w:after="120"/><w:jc w:val="left"/></w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
+      <w:b/><w:sz w:val="52"/>
+      <w:color w:val="5C2008"/>
+    </w:rPr>
+  </w:style>
 ${Object.entries(LVLS).map(([lvl, L]) =>
 `  <w:style w:type="paragraph" w:styleId="${L.id}">
     <w:name w:val="heading ${lvl}"/>
@@ -709,21 +743,28 @@ ${Object.entries(LVLS).map(([lvl, L]) =>
   </w:style>`).join('\n')}
 </w:styles>`;
 
+  const groups = groupHeadingsByBook(headings);
   let paragraphs = `  <w:p>
-    <w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
+    <w:pPr><w:pStyle w:val="BookTitle"/></w:pPr>
     <w:r><w:t>Bible Outline</w:t></w:r>
   </w:p>\n`;
 
-  headings.forEach(h => {
-    const L = LVLS[h.level] || LVLS[1];
-    const ref = h.endRef !== h.startRef
-      ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
-      : db.formatReference(h.startRef);
+  for (const group of groups) {
     paragraphs += `  <w:p>
+    <w:pPr><w:pStyle w:val="BookTitle"/></w:pPr>
+    <w:r><w:t>${x(group.bookName)}</w:t></w:r>
+  </w:p>\n`;
+    for (const h of group.headings) {
+      const L = LVLS[h.level] || LVLS[1];
+      const ref = h.endRef !== h.startRef
+        ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
+        : db.formatReference(h.startRef);
+      paragraphs += `  <w:p>
     <w:pPr><w:pStyle w:val="${L.id}"/></w:pPr>
     <w:r><w:t xml:space="preserve">${x(h.text)} (${ref})</w:t></w:r>
   </w:p>\n`;
-  });
+    }
+  }
 
   const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
@@ -756,13 +797,17 @@ function generateOdtExport(headings) {
   <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
 </manifest:manifest>`;
 
-  let textContent = `      <text:h text:style-name="Heading 1" text:outline-level="1">Bible Outline</text:h>\n`;
-  headings.forEach(h => {
-    const ref = h.endRef !== h.startRef
-      ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
-      : db.formatReference(h.startRef);
-    textContent += `      <text:h text:style-name="Heading ${h.level}" text:outline-level="${h.level}">${x(h.text)} (${ref})</text:h>\n`;
-  });
+  const odtGroups = groupHeadingsByBook(headings);
+  let textContent = `      <text:p text:style-name="Title">Bible Outline</text:p>\n`;
+  for (const group of odtGroups) {
+    textContent += `      <text:p text:style-name="Title">${x(group.bookName)}</text:p>\n`;
+    for (const h of group.headings) {
+      const ref = h.endRef !== h.startRef
+        ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
+        : db.formatReference(h.startRef);
+      textContent += `      <text:h text:style-name="Heading ${h.level}" text:outline-level="${h.level}">${x(h.text)} (${ref})</text:h>\n`;
+    }
+  }
 
   const content = `<?xml version="1.0" encoding="UTF-8"?>
 <office:document-content
@@ -785,13 +830,17 @@ ${textContent}    </office:text>
 
 // Open a print-ready page in a new tab so the user can save as PDF
 async function exportAsPDF(headings) {
+  const groups = groupHeadingsByBook(headings);
   let body = '';
-  headings.forEach(heading => {
-    const startDisplay = db.formatReference(heading.startRef);
-    const endDisplay = heading.endRef !== heading.startRef ?
-      `–${db.formatReference(heading.endRef)}` : '';
-    body += `<h${heading.level}>${escapeXML(heading.text)} <span class="ref">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
-  });
+  for (const group of groups) {
+    body += `<p class="book-title">${escapeXML(group.bookName)}</p>\n`;
+    for (const heading of group.headings) {
+      const startDisplay = db.formatReference(heading.startRef);
+      const endDisplay = heading.endRef !== heading.startRef ?
+        `\u2013${db.formatReference(heading.endRef)}` : '';
+      body += `<h${heading.level}>${escapeXML(heading.text)} <span class="ref">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+    }
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -799,23 +848,23 @@ async function exportAsPDF(headings) {
   <meta charset="UTF-8">
   <title>Bible Outline</title>
   <style>
-    body  { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 24px; line-height: 1.7; color: #222; }
-    h1    { font-size: 22pt; color: #5C2008; border-bottom: 2px solid #8B4513; padding-bottom: 8px; }
-    h2    { font-size: 16pt; color: #7B3410; }
-    h3    { font-size: 14pt; color: #A0522D; }
-    h4    { font-size: 13pt; color: #C07840; }
-    h5    { font-size: 12pt; color: #9E7B50; }
-    h6    { font-size: 11pt; color: #8B8AA0; }
-    .ref  { color: #999; font-size: 0.82em; font-family: monospace; }
+    body       { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 24px; line-height: 1.7; color: #222; }
+    .book-title{ font-size: 20pt; font-weight: 700; color: #5C2008; border-bottom: 2px solid #8B4513; padding-bottom: 6px; margin-top: 48px; }
+    h1  { font-size: 16pt; color: #5C2008; } h2 { font-size: 14pt; color: #7B3410; }
+    h3  { font-size: 13pt; color: #A0522D; } h4 { font-size: 12pt; color: #C07840; }
+    h5  { font-size: 11pt; color: #9E7B50; } h6 { font-size: 10pt; color: #8B8AA0; }
+    .ref{ color: #999; font-size: 0.82em; font-family: monospace; }
     @media print {
       body { margin: 0; max-width: none; }
       @page { margin: 2cm; }
+      .book-title { page-break-before: always; }
+      .book-title:first-of-type { page-break-before: avoid; }
     }
   </style>
   <script>window.addEventListener('load', () => window.print());<\/script>
 </head>
 <body>
-  <h1>Bible Outline</h1>
+  <p class="book-title" style="margin-top:0;">Bible Outline</p>
   <p><em>Generated on ${new Date().toLocaleDateString()}</em></p>
   ${body}
 </body>
@@ -876,16 +925,21 @@ async function handleImportFile(event) {
     const data = JSON.parse(text);
     
     if (!Array.isArray(data)) {
-      throw new Error('Invalid JSON format. Expected an array of headings.');
+      throw new Error('Invalid JSON format. Expected an array.');
     }
-    
-    statusDiv.textContent = `Importing ${data.length} heading(s)...`;
-    
+
+    // Support both flat [{text,level,...}] and grouped [{book,headings:[...]}] formats
+    const flatHeadings = (data.length > 0 && Array.isArray(data[0].headings))
+      ? data.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
+      : data;
+
+    statusDiv.textContent = `Importing ${flatHeadings.length} heading(s)...`;
+
     // Validate and import each heading
     let imported = 0;
     let skipped = 0;
-    
-    for (const item of data) {
+
+    for (const item of flatHeadings) {
       // Validate required fields
       if (!item.text || !item.level || !item.reference || !item.book) {
         skipped++;
