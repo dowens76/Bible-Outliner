@@ -96,9 +96,12 @@ function extractReference(element) {
   document.body.appendChild(btn);
 
   let hideTimer = null;
+  let lockedVerseEl = null;  // the verse element the button is currently shown for
+  let hoveringBtn = false;
 
   function showBtn(verseEl, reference) {
     clearTimeout(hideTimer);
+    lockedVerseEl = verseEl;
     btn.dataset.ref = reference;
 
     const rect = verseEl.getBoundingClientRect();
@@ -115,25 +118,40 @@ function extractReference(element) {
   }
 
   function scheduleHide() {
-    hideTimer = setTimeout(() => { btn.style.display = 'none'; }, 400);
+    hideTimer = setTimeout(() => {
+      btn.style.display = 'none';
+      lockedVerseEl = null;
+    }, 400);
   }
 
-  // Show on hover over any verse element
+  // Show on hover — but only if button is not already visible for another verse.
+  // This prevents the button from jumping when the mouse passes over an adjacent
+  // verse on the way from the original verse up to the button.
   document.addEventListener('mouseover', function(e) {
+    if (hoveringBtn) return;
     const verseEl = findVerseElement(e.target);
     if (!verseEl) return;
-    const ref = extractReference(verseEl);
-    if (ref) showBtn(verseEl, ref);
+    if (verseEl === lockedVerseEl) {
+      // Still on the same verse — cancel any pending hide
+      clearTimeout(hideTimer);
+      return;
+    }
+    // Only show for a new verse when the button is fully hidden
+    if (!lockedVerseEl) {
+      const ref = extractReference(verseEl);
+      if (ref) showBtn(verseEl, ref);
+    }
   }, true);
 
-  // Hide when mouse leaves a verse element (with delay so button is reachable)
+  // Start hide timer when mouse leaves the locked verse element
   document.addEventListener('mouseout', function(e) {
-    if (findVerseElement(e.target)) scheduleHide();
+    if (hoveringBtn) return;
+    if (findVerseElement(e.target) === lockedVerseEl) scheduleHide();
   }, true);
 
   // Keep visible while hovering the button itself
-  btn.addEventListener('mouseenter', () => clearTimeout(hideTimer));
-  btn.addEventListener('mouseleave', scheduleHide);
+  btn.addEventListener('mouseenter', () => { hoveringBtn = true; clearTimeout(hideTimer); });
+  btn.addEventListener('mouseleave', () => { hoveringBtn = false; scheduleHide(); });
 
   btn.addEventListener('click', (e) => {
     e.preventDefault();
