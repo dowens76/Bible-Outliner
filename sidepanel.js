@@ -8,6 +8,8 @@ const BOOK_GROUPS = {
   '2Kgs': ['1Kgs', '2Kgs'],
   '1Chr': ['1Chr', '2Chr'],
   '2Chr': ['1Chr', '2Chr'],
+  'Ezra': ['Ezra', 'Neh'],
+  'Neh':  ['Ezra', 'Neh'],
 };
 
 function getBooksToLoad(bookCode) {
