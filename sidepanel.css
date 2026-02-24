@@ -230,7 +230,7 @@ body {
 .heading-reference {
   font-size: 12px;
   color: #666;
-  font-family: 'Courier New', monospace;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .heading-actions {
@@ -558,4 +558,88 @@ body {
 
 .heading-item {
   animation: slideIn 0.3s ease-out;
+}
+
+/* ── Reorder Mode ──────────────────────────────────────────────────────────── */
+
+.reorder-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: #F5E6D0;
+  border-bottom: 1px solid #C8A882;
+  font-size: 13px;
+  color: #7B3410;
+  font-weight: 500;
+}
+
+.reorder-banner-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.reorder-save-btn {
+  background: #7B3410;
+  color: white;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.reorder-save-btn:hover {
+  background: #5C2008;
+}
+
+.reorder-cancel-btn {
+  background: rgba(0, 0, 0, 0.1);
+  color: #5C2008;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.reorder-cancel-btn:hover {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* Drag handle — hidden until reorder mode */
+.drag-handle {
+  display: none;
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #C8A882;
+  font-size: 18px;
+  cursor: grab;
+  user-select: none;
+  line-height: 1;
+}
+
+/* Reorder mode overrides */
+body.reorder-mode .drag-handle {
+  display: block;
+}
+
+body.reorder-mode .heading-item {
+  padding-left: 32px;
+  cursor: grab;
+  animation: none;
+}
+
+body.reorder-mode .heading-item:hover {
+  transform: none;
+  background: #FFFDF7;
+}
+
+body.reorder-mode .heading-item:hover .heading-actions {
+  display: none;
+}
+
+.heading-item.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.heading-item.drag-over-above {
+  border-top: 2px solid #7B3410;
 }

@@ -30,10 +30,25 @@ function groupHeadingsByBook(headings) {
   return groups;
 }
 
+// If any heading in the array has a numeric position, sort by position
+// (headings without a position sort after all positioned ones).
+// Otherwise the db-returned sortKey+level order is used unchanged.
+function applyPositionSort(headings) {
+  if (headings.some(h => typeof h.position === 'number')) {
+    headings.sort((a, b) => {
+      const ap = typeof a.position === 'number' ? a.position : Infinity;
+      const bp = typeof b.position === 'number' ? b.position : Infinity;
+      if (ap !== bp) return ap - bp;
+      return a.sortKey.localeCompare(b.sortKey) || (a.level - b.level);
+    });
+  }
+}
+
 let currentBook = null;
 let currentHeadings = [];
 let selectedHeadingLevel = 1;
 let editingHeadingId = null;
+let isReorderMode = false;
 
 // Initialize
 async function init() {
@@ -47,8 +62,11 @@ async function init() {
 
 // Setup event listeners
 function setupEventListeners() {
-  // Add heading button
-  document.getElementById('addHeadingBtn').addEventListener('click', openAddHeadingModal);
+  // Add heading button (exits reorder mode first if active)
+  document.getElementById('addHeadingBtn').addEventListener('click', () => {
+    if (isReorderMode) exitReorderMode();
+    openAddHeadingModal();
+  });
   
   // Modal controls
   document.getElementById('closeModal').addEventListener('click', closeModal);
@@ -64,6 +82,47 @@ function setupEventListeners() {
     });
   });
   
+  // Reorder
+  document.getElementById('reorderBtn').addEventListener('click', enterReorderMode);
+  document.getElementById('saveOrderBtn').addEventListener('click', saveOrder);
+  document.getElementById('cancelReorderBtn').addEventListener('click', cancelReorder);
+
+  // Drag-and-drop on the headings list (event delegation, guarded by isReorderMode)
+  const hList = document.getElementById('headingsList');
+  let dragSrc = null;
+
+  hList.addEventListener('dragstart', (e) => {
+    if (!isReorderMode) return;
+    const item = e.target.closest('.heading-item');
+    if (!item) return;
+    dragSrc = item;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', item.dataset.id);
+    requestAnimationFrame(() => item.classList.add('dragging'));
+  });
+
+  hList.addEventListener('dragover', (e) => {
+    if (!isReorderMode || !dragSrc) return;
+    e.preventDefault();
+    const target = e.target.closest('.heading-item');
+    if (!target || target === dragSrc) return;
+    // Clear previous indicators
+    hList.querySelectorAll('.drag-over-above').forEach(el => el.classList.remove('drag-over-above'));
+    const rect = target.getBoundingClientRect();
+    if (e.clientY < rect.top + rect.height / 2) {
+      hList.insertBefore(dragSrc, target);
+    } else {
+      hList.insertBefore(dragSrc, target.nextSibling);
+    }
+  });
+
+  hList.addEventListener('dragend', () => {
+    if (dragSrc) { dragSrc.classList.remove('dragging'); dragSrc = null; }
+    hList.querySelectorAll('.drag-over-above').forEach(el => el.classList.remove('drag-over-above'));
+  });
+
+  hList.addEventListener('drop', (e) => e.preventDefault());
+
   // Export
   document.getElementById('exportBtn').addEventListener('click', openExportModal);
   document.getElementById('closeExportModal').addEventListener('click', closeExportModal);
@@ -150,6 +209,7 @@ async function loadHeadings() {
   try {
     const books = getBooksToLoad(currentBook);
     currentHeadings = await db.getHeadingsByBooks(books);
+    applyPositionSort(currentHeadings);
     const fallbackEndRef = db.getLastVerseRef(books[books.length - 1]);
     const headingsWithRanges = db.calculateVerseRanges(currentHeadings, fallbackEndRef);
     renderHeadings(headingsWithRanges);
@@ -200,6 +260,7 @@ function createHeadingElement(heading) {
     ` – ${fmtRef(heading.endRef)}` : '';
   
   div.innerHTML = `
+    <span class="drag-handle" aria-hidden="true">&#8801;</span>
     <span class="heading-text"><span class="outline-num">${heading.prefix || ''}</span> ${heading.text}</span>
     <span class="heading-reference">(${startDisplay}${endDisplay})</span>
     <div class="heading-actions">
@@ -207,9 +268,10 @@ function createHeadingElement(heading) {
       <button class="action-btn delete" title="Delete">🗑️</button>
     </div>
   `;
-  
-  // Click to navigate
+
+  // Click to navigate (suppressed in reorder mode)
   div.addEventListener('click', (e) => {
+    if (isReorderMode) return;
     if (!e.target.classList.contains('action-btn')) {
       navigateToVerse(heading.reference);
     }
@@ -1067,6 +1129,46 @@ async function handleImportFile(event) {
   
   // Reset file input
   event.target.value = '';
+}
+
+// ── Reorder mode ──────────────────────────────────────────────────────────────
+
+function enterReorderMode() {
+  if (isReorderMode || !currentHeadings.length) return;
+  isReorderMode = true;
+  document.body.classList.add('reorder-mode');
+  document.getElementById('reorderBanner').style.display = 'flex';
+  document.getElementById('reorderBtn').style.display = 'none';
+  // Make every rendered item draggable
+  document.querySelectorAll('#headingsList .heading-item')
+    .forEach(el => { el.draggable = true; });
+}
+
+function exitReorderMode() {
+  isReorderMode = false;
+  document.body.classList.remove('reorder-mode');
+  document.getElementById('reorderBanner').style.display = 'none';
+  document.getElementById('reorderBtn').style.display = '';
+  document.querySelectorAll('#headingsList .heading-item')
+    .forEach(el => { el.draggable = false; el.classList.remove('drag-over-above', 'dragging'); });
+}
+
+async function saveOrder() {
+  const orderedIds = [...document.querySelectorAll('#headingsList .heading-item')]
+    .map(el => parseInt(el.dataset.id, 10));
+  try {
+    await db.savePositions(orderedIds);
+    exitReorderMode();
+    await loadHeadings();
+  } catch (err) {
+    console.error('Error saving order:', err);
+    alert('Error saving order: ' + err.message);
+  }
+}
+
+async function cancelReorder() {
+  exitReorderMode();
+  await loadHeadings();
 }
 
 // Start the application

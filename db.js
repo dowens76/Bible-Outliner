@@ -234,8 +234,7 @@ class BibleOutlineDB {
       const request = index.getAll(bookCode);
       request.onsuccess = () => {
         const headings = request.result;
-        // Sort by sortKey
-        headings.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+        headings.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || (a.level - b.level));
         resolve(headings);
       };
       request.onerror = () => reject(request.error);
@@ -246,7 +245,7 @@ class BibleOutlineDB {
   async getHeadingsByBooks(bookCodes) {
     const results = await Promise.all(bookCodes.map(code => this.getHeadingsByBook(code)));
     const merged = results.flat();
-    merged.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    merged.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || (a.level - b.level));
     return merged;
   }
 
@@ -299,10 +298,27 @@ class BibleOutlineDB {
       const request = store.getAll();
       request.onsuccess = () => {
         const headings = request.result;
-        headings.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+        headings.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || (a.level - b.level));
         resolve(headings);
       };
       request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Save sequential position values for an ordered list of heading IDs.
+  // All writes happen in a single readwrite transaction for atomicity.
+  async savePositions(orderedIds) {
+    const transaction = this.db.transaction(['headings'], 'readwrite');
+    const store = transaction.objectStore('headings');
+    return new Promise((resolve, reject) => {
+      transaction.oncomplete = () => resolve();
+      transaction.onerror   = () => reject(transaction.error);
+      orderedIds.forEach((id, position) => {
+        const req = store.get(id);
+        req.onsuccess = () => {
+          if (req.result) store.put({ ...req.result, position });
+        };
+      });
     });
   }
 
