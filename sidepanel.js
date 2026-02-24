@@ -49,6 +49,12 @@ function setupEventListeners() {
   });
   document.getElementById('importFileInput').addEventListener('change', handleImportFile);
   
+  // Current book dropdown
+  document.getElementById('currentBookSelect').addEventListener('change', async (e) => {
+    currentBook = e.target.value || null;
+    await loadHeadings();
+  });
+
   // Click outside modal to close
   document.getElementById('headingModal').addEventListener('click', (e) => {
     if (e.target.id === 'headingModal') closeModal();
@@ -78,7 +84,7 @@ async function loadCurrentBook() {
       const response = await chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_CURRENT_BOOK' });
       if (response && response.book) {
         currentBook = response.book;
-        document.getElementById('currentBook').textContent = getBookName(currentBook);
+        document.getElementById('currentBookSelect').value = currentBook;
         await loadHeadings();
       }
     }

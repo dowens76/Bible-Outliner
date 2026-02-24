@@ -54,9 +54,21 @@ body {
   margin-right: 8px;
 }
 
-.book-name {
+.book-select {
+  font-size: 13px;
   font-weight: 600;
   color: #667eea;
+  border: 1px solid #d0d5f7;
+  border-radius: 4px;
+  padding: 2px 6px;
+  background: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.book-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.15);
 }
 
 /* Outline Container */
