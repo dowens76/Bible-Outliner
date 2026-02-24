@@ -126,6 +126,7 @@ function setupEventListeners() {
   // Export
   document.getElementById('exportBtn').addEventListener('click', openExportModal);
   document.getElementById('closeExportModal').addEventListener('click', closeExportModal);
+  document.getElementById('exportMarkdownBtn').addEventListener('click', () => exportOutline('markdown'));
   document.getElementById('exportHtmlBtn').addEventListener('click', () => exportOutline('html'));
   document.getElementById('exportXmlBtn').addEventListener('click', () => exportOutline('xml'));
   document.getElementById('exportJsonBtn').addEventListener('click', () => exportOutline('json'));
@@ -540,7 +541,11 @@ async function exportOutline(format) {
     let filename;
     let mimeType;
     
-    if (format === 'html') {
+    if (format === 'markdown') {
+      content = generateMarkdownExport(headingsWithRanges);
+      filename = 'bible-outline.md';
+      mimeType = 'text/markdown';
+    } else if (format === 'html') {
       content = generateHTMLExport(headingsWithRanges);
       filename = 'bible-outline.html';
       mimeType = 'text/html';
@@ -584,6 +589,26 @@ async function exportOutline(format) {
     console.error('Error stack:', error.stack);
     alert('Error exporting outline: ' + error.message);
   }
+}
+
+// Generate Markdown export
+function generateMarkdownExport(headings) {
+  const groups = assignOutlineNumbers(groupHeadingsByBook(headings));
+
+  let md = `# Bible Outline\n\n*Generated on ${new Date().toLocaleDateString()}*\n\n`;
+
+  for (const group of groups) {
+    md += `---\n\n**${group.bookName}**\n\n`;
+    for (const heading of group.headings) {
+      const startDisplay = db.formatReference(heading.startRef);
+      const endDisplay = heading.endRef !== heading.startRef
+        ? `\u2013${db.formatReference(heading.endRef)}` : '';
+      const hashes = '#'.repeat(heading.level);
+      md += `${hashes} ${heading.prefix} ${heading.text} *(${startDisplay}${endDisplay})*\n\n`;
+    }
+  }
+
+  return md;
 }
 
 // Generate HTML export
