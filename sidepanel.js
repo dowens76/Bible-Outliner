@@ -1,5 +1,19 @@
 // sidepanel.js - Main logic for the side panel
 
+// Books that should be outlined together
+const BOOK_GROUPS = {
+  '1Sam': ['1Sam', '2Sam'],
+  '2Sam': ['1Sam', '2Sam'],
+  '1Kgs': ['1Kgs', '2Kgs'],
+  '2Kgs': ['1Kgs', '2Kgs'],
+  '1Chr': ['1Chr', '2Chr'],
+  '2Chr': ['1Chr', '2Chr'],
+};
+
+function getBooksToLoad(bookCode) {
+  return BOOK_GROUPS[bookCode] || [bookCode];
+}
+
 let currentBook = null;
 let currentHeadings = [];
 let selectedHeadingLevel = 1;
@@ -93,12 +107,13 @@ async function loadCurrentBook() {
   }
 }
 
-// Load headings for current book
+// Load headings for current book (or grouped books)
 async function loadHeadings() {
   if (!currentBook) return;
-  
+
   try {
-    currentHeadings = await db.getHeadingsByBook(currentBook);
+    const books = getBooksToLoad(currentBook);
+    currentHeadings = await db.getHeadingsByBooks(books);
     const headingsWithRanges = db.calculateVerseRanges(currentHeadings);
     renderHeadings(headingsWithRanges);
   } catch (error) {
@@ -133,10 +148,15 @@ function createHeadingElement(heading) {
   div.dataset.id = heading.id;
   div.dataset.reference = heading.reference;
   
-  // Format the verse range
-  const startDisplay = db.formatReference(heading.startRef);
-  const endDisplay = heading.endRef !== heading.startRef ? 
-    ` – ${db.formatReference(heading.endRef)}` : '';
+  // Format the verse range, prefixing book abbr when showing a grouped view
+  const grouped = getBooksToLoad(currentBook).length > 1;
+  const fmtRef = (ref) => {
+    const book = ref.split('.')[0];
+    return grouped ? `${book} ${db.formatReference(ref)}` : db.formatReference(ref);
+  };
+  const startDisplay = fmtRef(heading.startRef);
+  const endDisplay = heading.endRef !== heading.startRef ?
+    ` – ${fmtRef(heading.endRef)}` : '';
   
   div.innerHTML = `
     <span class="heading-text">${heading.text}</span>

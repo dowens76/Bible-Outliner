@@ -230,6 +230,14 @@ class BibleOutlineDB {
     });
   }
 
+  // Get headings for multiple books, merged and sorted
+  async getHeadingsByBooks(bookCodes) {
+    const results = await Promise.all(bookCodes.map(code => this.getHeadingsByBook(code)));
+    const merged = results.flat();
+    merged.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    return merged;
+  }
+
   // Update a heading
   async updateHeading(id, updates) {
     const transaction = this.db.transaction(['headings'], 'readwrite');
