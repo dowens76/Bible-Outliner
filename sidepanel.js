@@ -56,7 +56,8 @@ function setupEventListeners() {
   document.getElementById('exportHtmlBtn').addEventListener('click', () => exportOutline('html'));
   document.getElementById('exportXmlBtn').addEventListener('click', () => exportOutline('xml'));
   document.getElementById('exportJsonBtn').addEventListener('click', () => exportOutline('json'));
-  document.getElementById('exportWordBtn').addEventListener('click', () => exportOutline('word'));
+  document.getElementById('exportWordBtn').addEventListener('click', () => exportOutline('docx'));
+  document.getElementById('exportOdtBtn').addEventListener('click', () => exportOutline('odt'));
   document.getElementById('exportPdfBtn').addEventListener('click', () => exportOutline('pdf'));
   
   // Import
@@ -449,10 +450,14 @@ async function exportOutline(format) {
       content = generateJSONExport(headingsWithRanges);
       filename = 'bible-outline.json';
       mimeType = 'application/json';
-    } else if (format === 'word') {
-      content = generateWordExport(headingsWithRanges);
-      filename = 'bible-outline.doc';
-      mimeType = 'application/msword';
+    } else if (format === 'docx') {
+      content = generateDocxExport(headingsWithRanges);
+      filename = 'bible-outline.docx';
+      mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    } else if (format === 'odt') {
+      content = generateOdtExport(headingsWithRanges);
+      filename = 'bible-outline.odt';
+      mimeType = 'application/vnd.oasis.opendocument.text';
     } else if (format === 'pdf') {
       await exportAsPDF(headingsWithRanges);
       closeExportModal();
@@ -555,36 +560,227 @@ function generateJSONExport(headings) {
   return JSON.stringify(data, null, 2);
 }
 
-// Generate Word (.doc) export — Word-compatible HTML format
-function generateWordExport(headings) {
-  let body = `<h1 style="border-bottom:2px solid #8B4513;padding-bottom:8px;">Bible Outline</h1>\n`;
-  body += `<p><em>Generated on ${new Date().toLocaleDateString()}</em></p>\n`;
+// ── CRC-32 (required by ZIP) ──────────────────────────────────────────────────
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+})();
 
-  headings.forEach(heading => {
-    const startDisplay = db.formatReference(heading.startRef);
-    const endDisplay = heading.endRef !== heading.startRef ?
-      `–${db.formatReference(heading.endRef)}` : '';
-    body += `<h${heading.level}>${escapeXML(heading.text)} <span style="color:#999;font-size:0.85em;">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+function crc32(data) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < data.length; i++)
+    crc = CRC32_TABLE[(crc ^ data[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+// ── Minimal ZIP writer (STORE – no compression) ───────────────────────────────
+// files: [{name: string, data: string|Uint8Array}]
+function makeZip(files) {
+  const enc = new TextEncoder();
+  const localBlocks = [];
+  const centralRecs  = [];
+  let localOffset = 0;
+
+  for (const file of files) {
+    const nameBytes = enc.encode(file.name);
+    const data = file.data instanceof Uint8Array ? file.data : enc.encode(file.data);
+    const checksum = crc32(data);
+    const size = data.length;
+
+    // Local file header (30 bytes) + name + data
+    const local = new Uint8Array(30 + nameBytes.length + size);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0,  0x04034b50, true); // signature
+    lv.setUint16(4,  20, true);          // version needed
+    lv.setUint16(6,  0,  true);          // flags
+    lv.setUint16(8,  0,  true);          // compression: STORE
+    lv.setUint16(10, 0,  true);          // mod time
+    lv.setUint16(12, 0,  true);          // mod date
+    lv.setUint32(14, checksum, true);
+    lv.setUint32(18, size, true);        // compressed size
+    lv.setUint32(22, size, true);        // uncompressed size
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);           // extra field length
+    local.set(nameBytes, 30);
+    local.set(data, 30 + nameBytes.length);
+    localBlocks.push(local);
+
+    // Central directory record (46 bytes) + name
+    const cdr = new Uint8Array(46 + nameBytes.length);
+    const cv = new DataView(cdr.buffer);
+    cv.setUint32(0,  0x02014b50, true);
+    cv.setUint16(4,  20, true);
+    cv.setUint16(6,  20, true);
+    cv.setUint16(8,  0,  true);
+    cv.setUint16(10, 0,  true);  // STORE
+    cv.setUint16(12, 0,  true);
+    cv.setUint16(14, 0,  true);
+    cv.setUint32(16, checksum, true);
+    cv.setUint32(20, size, true);
+    cv.setUint32(24, size, true);
+    cv.setUint16(28, nameBytes.length, true);
+    cv.setUint16(30, 0, true);
+    cv.setUint16(32, 0, true);
+    cv.setUint16(34, 0, true);
+    cv.setUint16(36, 0, true);
+    cv.setUint32(38, 0, true);
+    cv.setUint32(42, localOffset, true);
+    cdr.set(nameBytes, 46);
+    centralRecs.push(cdr);
+
+    localOffset += local.length;
+  }
+
+  const cdSize = centralRecs.reduce((s, r) => s + r.length, 0);
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0,  0x06054b50, true);
+  ev.setUint16(4,  0, true);
+  ev.setUint16(6,  0, true);
+  ev.setUint16(8,  files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, localOffset, true);
+  ev.setUint16(20, 0, true);
+
+  const zip = new Uint8Array(localOffset + cdSize + 22);
+  let pos = 0;
+  for (const b of localBlocks) { zip.set(b, pos); pos += b.length; }
+  for (const r of centralRecs)  { zip.set(r, pos); pos += r.length; }
+  zip.set(eocd, pos);
+  return zip;
+}
+
+// ── DOCX export ───────────────────────────────────────────────────────────────
+function generateDocxExport(headings) {
+  const x = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // level → { Word styleId, hex color, font size in half-points, left indent in twips }
+  const LVLS = {
+    1: { id:'Heading1', color:'5C2008', sz:40, ind:0    },
+    2: { id:'Heading2', color:'7B3410', sz:32, ind:300  },
+    3: { id:'Heading3', color:'A0522D', sz:28, ind:600  },
+    4: { id:'Heading4', color:'C07840', sz:26, ind:900  },
+    5: { id:'Heading5', color:'9E7B50', sz:24, ind:1200 },
+    6: { id:'Heading6', color:'8B8AA0', sz:22, ind:1500 },
+  };
+
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml"  ContentType="application/xml"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+  <Override PartName="/word/styles.xml"   ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+</Types>`;
+
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+  const docRels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`;
+
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:docDefaults><w:rPrDefault><w:rPr>
+    <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
+    <w:sz w:val="22"/>
+  </w:rPr></w:rPrDefault></w:docDefaults>
+${Object.entries(LVLS).map(([lvl, L]) =>
+`  <w:style w:type="paragraph" w:styleId="${L.id}">
+    <w:name w:val="heading ${lvl}"/>
+    <w:pPr>
+      <w:outlineLvl w:val="${lvl - 1}"/>
+      ${L.ind ? `<w:ind w:left="${L.ind}"/>` : ''}
+    </w:pPr>
+    <w:rPr>
+      <w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/>
+      <w:b/><w:sz w:val="${L.sz}"/>
+      <w:color w:val="${L.color}"/>
+    </w:rPr>
+  </w:style>`).join('\n')}
+</w:styles>`;
+
+  let paragraphs = `  <w:p>
+    <w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
+    <w:r><w:t>Bible Outline</w:t></w:r>
+  </w:p>\n`;
+
+  headings.forEach(h => {
+    const L = LVLS[h.level] || LVLS[1];
+    const ref = h.endRef !== h.startRef
+      ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
+      : db.formatReference(h.startRef);
+    paragraphs += `  <w:p>
+    <w:pPr><w:pStyle w:val="${L.id}"/></w:pPr>
+    <w:r><w:t xml:space="preserve">${x(h.text)} (${ref})</w:t></w:r>
+  </w:p>\n`;
   });
 
-  return `<html xmlns:o="urn:schemas-microsoft-com:office:office"
-  xmlns:w="urn:schemas-microsoft-com:office:word"
-  xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="utf-8">
-<title>Bible Outline</title>
-<style>
-  body  { font-family: Calibri, sans-serif; font-size: 11pt; }
-  h1    { font-size: 20pt; color: #5C2008; }
-  h2    { font-size: 16pt; color: #7B3410; }
-  h3    { font-size: 14pt; color: #A0522D; }
-  h4    { font-size: 13pt; color: #C07840; }
-  h5    { font-size: 12pt; color: #9E7B50; }
-  h6    { font-size: 11pt; color: #8B8AA0; }
-</style>
-</head>
-<body>${body}</body>
-</html>`;
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:body>
+${paragraphs}    <w:sectPr>
+      <w:pgSz w:w="12240" w:h="15840"/>
+      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+  return makeZip([
+    { name: '[Content_Types].xml',          data: contentTypes },
+    { name: '_rels/.rels',                  data: rels         },
+    { name: 'word/_rels/document.xml.rels', data: docRels      },
+    { name: 'word/styles.xml',              data: stylesXml    },
+    { name: 'word/document.xml',            data: documentXml  },
+  ]);
+}
+
+// ── ODT export (LibreOffice) ──────────────────────────────────────────────────
+function generateOdtExport(headings) {
+  const x = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const mimetype = 'application/vnd.oasis.opendocument.text';
+
+  const manifest = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">
+  <manifest:file-entry manifest:full-path="/"           manifest:media-type="application/vnd.oasis.opendocument.text"/>
+  <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>`;
+
+  let textContent = `      <text:h text:style-name="Heading 1" text:outline-level="1">Bible Outline</text:h>\n`;
+  headings.forEach(h => {
+    const ref = h.endRef !== h.startRef
+      ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
+      : db.formatReference(h.startRef);
+    textContent += `      <text:h text:style-name="Heading ${h.level}" text:outline-level="${h.level}">${x(h.text)} (${ref})</text:h>\n`;
+  });
+
+  const content = `<?xml version="1.0" encoding="UTF-8"?>
+<office:document-content
+  xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
+  office:version="1.3">
+  <office:body>
+    <office:text>
+${textContent}    </office:text>
+  </office:body>
+</office:document-content>`;
+
+  // mimetype MUST be first entry and stored uncompressed per the ODF spec
+  return makeZip([
+    { name: 'mimetype',              data: mimetype },
+    { name: 'META-INF/manifest.xml', data: manifest },
+    { name: 'content.xml',           data: content  },
+  ]);
 }
 
 // Open a print-ready page in a new tab so the user can save as PDF
