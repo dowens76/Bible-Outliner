@@ -240,7 +240,7 @@ body {
 
 .heading-actions {
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   right: 8px;
   display: none;
   gap: 4px;
