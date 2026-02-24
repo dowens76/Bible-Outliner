@@ -87,9 +87,9 @@ function getPreviousVerse(reference) {
   const midVerse = verseRaw.endsWith('b');
   let verse = parseInt(verseRaw);
 
-  // If midverse, "previous" is the start (a-part) of the same verse
+  // If midverse, "previous" is the "a" part of the same verse
   if (midVerse) {
-    return `${book}.${chapter}.${verse}`;
+    return `${book}.${chapter}.${verse}a`;
   }
 
   // If not first verse, just go back one verse
