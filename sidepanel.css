@@ -181,27 +181,27 @@ body {
 }
 
 .heading-item.level-2 {
-  margin-left: 5px;
+  margin-left: 15px;
   border-left-color: #A0522D;
 }
 
 .heading-item.level-3 {
-  margin-left: 10px;
+  margin-left: 30px;
   border-left-color: #C07840;
 }
 
 .heading-item.level-4 {
-  margin-left: 15px;
+  margin-left: 45px;
   border-left-color: #9E7B50;
 }
 
 .heading-item.level-5 {
-  margin-left: 20px;
+  margin-left: 60px;
   border-left-color: #B4B0C8;
 }
 
 .heading-item.level-6 {
-  margin-left: 25px;
+  margin-left: 75px;
   border-left-color: #8B8AA0;
 }
 
