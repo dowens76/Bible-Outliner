@@ -12,6 +12,25 @@ const BOOK_GROUPS = {
   'Neh':  ['Ezra', 'Neh'],
 };
 
+// Heading level color palettes (Open Color — https://yeun.github.io/open-color/)
+// Each palette uses shades 9→4 for levels 1→6 (darkest = most prominent for L1)
+const HEADING_PALETTES = {
+  default: { name: 'Default', colors: ['#7B3410','#A0522D','#C07840','#9E7B50','#B4B0C8','#8B8AA0'] },
+  gray:    { name: 'Gray',    colors: ['#212529','#343a40','#495057','#868e96','#adb5bd','#ced4da'] },
+  red:     { name: 'Red',     colors: ['#c92a2a','#e03131','#f03e3e','#fa5252','#ff6b6b','#ff8787'] },
+  pink:    { name: 'Pink',    colors: ['#a61e4d','#c2255c','#d6336c','#e64980','#f06595','#f783ac'] },
+  grape:   { name: 'Grape',   colors: ['#862e9c','#9c36b5','#ae3ec9','#be4bdb','#cc5de8','#da77f2'] },
+  violet:  { name: 'Violet',  colors: ['#5f3dc4','#6741d9','#7048e8','#7950f2','#845ef7','#9775fa'] },
+  indigo:  { name: 'Indigo',  colors: ['#364fc7','#3b5bdb','#4263eb','#4c6ef5','#5c7cfa','#748ffc'] },
+  blue:    { name: 'Blue',    colors: ['#1864ab','#1971c2','#1c7ed6','#228be6','#339af0','#4dabf7'] },
+  cyan:    { name: 'Cyan',    colors: ['#0b7285','#0c8599','#1098ad','#15aabf','#22b8cf','#3bc9db'] },
+  teal:    { name: 'Teal',    colors: ['#087f5b','#099268','#0ca678','#12b886','#20c997','#38d9a9'] },
+  green:   { name: 'Green',   colors: ['#2b8a3e','#2f9e44','#37b24d','#40c057','#51cf66','#69db7c'] },
+  lime:    { name: 'Lime',    colors: ['#5c940d','#66a80f','#74b816','#82c91e','#94d82d','#a9e34b'] },
+  yellow:  { name: 'Yellow',  colors: ['#e67700','#f08c00','#f59f00','#fab005','#fcc419','#ffd43b'] },
+  orange:  { name: 'Orange',  colors: ['#d9480f','#e8590c','#f76707','#fd7e14','#ff922b','#ffa94d'] },
+};
+
 function getBooksToLoad(bookCode) {
   return BOOK_GROUPS[bookCode] || [bookCode];
 }
@@ -75,10 +94,77 @@ async function initColorScheme() {
   });
 }
 
+// ── Heading palette ───────────────────────────────────────────────────────────
+
+function applyHeadingPalette(key) {
+  const palette = HEADING_PALETTES[key] || HEADING_PALETTES.default;
+  palette.colors.forEach((color, i) => {
+    document.documentElement.style.setProperty(`--level${i + 1}-color`, color);
+  });
+  document.querySelectorAll('.palette-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.palette === key);
+  });
+}
+
+async function initHeadingPalette() {
+  const picker = document.getElementById('palettePicker');
+  Object.entries(HEADING_PALETTES).forEach(([key, palette]) => {
+    const chip = document.createElement('button');
+    chip.className = 'palette-chip';
+    chip.dataset.palette = key;
+    chip.title = i18n.t(`palette_${key}`);
+
+    const swatches = document.createElement('div');
+    swatches.className = 'palette-swatches';
+    palette.colors.forEach(color => {
+      const s = document.createElement('span');
+      s.className = 'palette-swatch';
+      s.style.background = color;
+      swatches.appendChild(s);
+    });
+
+    const label = document.createElement('span');
+    label.className = 'palette-chip-name';
+    label.textContent = i18n.t(`palette_${key}`);
+
+    chip.appendChild(swatches);
+    chip.appendChild(label);
+
+    chip.addEventListener('click', async () => {
+      applyHeadingPalette(key);
+      await db.setSetting('headingPalette', key);
+    });
+
+    picker.appendChild(chip);
+  });
+
+  // Apply saved palette (or default)
+  const saved = (await db.getSetting('headingPalette')) || 'default';
+  applyHeadingPalette(saved);
+}
+
 // Initialize
 async function init() {
   await db.init();
-  await initColorScheme();   // apply saved theme before rendering
+
+  // Load i18n strings, then localize the static DOM
+  const savedLang = (await db.getSetting('language')) || 'en';
+  await i18n.load(savedLang);
+  i18n.localizeDOM();
+  i18n.localizeBookSelects();
+
+  // Wire language selector
+  const langSel = document.getElementById('languageSelect');
+  if (langSel) {
+    langSel.value = savedLang;
+    langSel.addEventListener('change', async () => {
+      await db.setSetting('language', langSel.value);
+      location.reload();
+    });
+  }
+
+  await initColorScheme();       // apply saved theme before rendering
+  await initHeadingPalette();    // apply saved heading palette before rendering
   setupEventListeners();
   await loadCurrentBook();
 
@@ -488,7 +574,7 @@ function highlightHeadingByReference(reference) {
 // Open add heading modal
 function openAddHeadingModal() {
   editingHeadingId = null;
-  document.getElementById('modalTitle').textContent = 'Add Heading';
+  document.getElementById('modalTitle').textContent = i18n.t('addHeadingModal');
   
   // Set defaults
   if (currentBook) {
@@ -513,7 +599,7 @@ function openAddHeadingModal() {
 // Open add heading modal with pre-filled verse reference
 function openAddHeadingModalWithVerse(reference) {
   editingHeadingId = null;
-  document.getElementById('modalTitle').textContent = 'Add Heading';
+  document.getElementById('modalTitle').textContent = i18n.t('addHeadingModal');
 
   const { book, chapter, verse } = db.parseReference(reference);
 
@@ -537,7 +623,7 @@ function openAddHeadingModalWithVerse(reference) {
 // Open edit heading modal
 function openEditHeadingModal(heading) {
   editingHeadingId = heading.id;
-  document.getElementById('modalTitle').textContent = 'Edit Heading';
+  document.getElementById('modalTitle').textContent = i18n.t('editHeadingModal');
   
   // Parse reference
   const { book, chapter, verse, midVerse } = db.parseReference(heading.reference);
@@ -577,7 +663,7 @@ async function saveHeading() {
   console.log('Save heading called:', { book, chapter, verse, midVerse, text, notes, level: selectedHeadingLevel });
 
   if (!book || !chapter || !verse || !text) {
-    alert('Please fill in all fields');
+    alert(i18n.t('fillInAllFields'));
     return;
   }
 
@@ -615,13 +701,13 @@ async function saveHeading() {
   } catch (error) {
     console.error('Error saving heading:', error);
     console.error('Error details:', error.message, error.stack);
-    alert('Error saving heading: ' + error.message);
+    alert(i18n.t('errorSaving', error.message));
   }
 }
 
 // Delete heading
 async function deleteHeading(id) {
-  if (!confirm('Are you sure you want to delete this heading?')) {
+  if (!confirm(i18n.t('confirmDelete'))) {
     return;
   }
   
@@ -630,7 +716,7 @@ async function deleteHeading(id) {
     await loadHeadings();
   } catch (error) {
     console.error('Error deleting heading:', error);
-    alert('Error deleting heading. Please try again.');
+    alert(i18n.t('errorDeleting'));
   }
 }
 
@@ -733,7 +819,7 @@ async function exportOutline(format) {
   } catch (error) {
     console.error('Error exporting:', error);
     console.error('Error stack:', error.stack);
-    alert('Error exporting outline: ' + error.message);
+    alert(i18n.t('errorExporting', error.message));
   }
 }
 
@@ -741,7 +827,7 @@ async function exportOutline(format) {
 function generateMarkdownExport(headings) {
   const groups = assignOutlineNumbers(groupHeadingsByBook(headings));
 
-  let md = `# Bible Outline\n\n*Generated on ${new Date().toLocaleDateString()}*\n\n`;
+  let md = `# ${i18n.t('exportDocTitle')}\n\n*${i18n.t('exportGeneratedOn', new Date().toLocaleDateString())}*\n\n`;
 
   for (const group of groups) {
     md += `---\n\n**${group.bookName}**\n\n`;
@@ -805,12 +891,12 @@ async function copyToClipboard() {
     const text = generatePlainTextExport(headingsWithRanges);
     await navigator.clipboard.writeText(text);
 
-    span.textContent = 'Copied!';
-    setTimeout(() => { span.textContent = 'Copy to Clipboard'; }, 2000);
+    span.textContent = i18n.t('copiedConfirm');
+    setTimeout(() => { span.textContent = i18n.t('copyClipboard'); }, 2000);
   } catch (error) {
     console.error('Error copying to clipboard:', error);
-    span.textContent = 'Copy failed';
-    setTimeout(() => { span.textContent = 'Copy to Clipboard'; }, 2000);
+    span.textContent = i18n.t('copyFailed');
+    setTimeout(() => { span.textContent = i18n.t('copyClipboard'); }, 2000);
   }
 }
 
@@ -823,7 +909,7 @@ function generateHTMLExport(headings) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bible Outline</title>
+  <title>${i18n.t('exportDocTitle')}</title>
   <style>
     body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; }
     .book-title { font-size: 1.5em; font-weight: 700; color: #5C2008; border-bottom: 3px solid #8B4513; padding-bottom: 8px; margin-top: 48px; }
@@ -834,8 +920,8 @@ function generateHTMLExport(headings) {
   </style>
 </head>
 <body>
-  <h1 style="border-bottom:3px solid #8B4513;padding-bottom:10px;">Bible Outline</h1>
-  <p><em>Generated on ${new Date().toLocaleDateString()}</em></p>
+  <h1 style="border-bottom:3px solid #8B4513;padding-bottom:10px;">${i18n.t('exportDocTitle')}</h1>
+  <p><em>${i18n.t('exportGeneratedOn', new Date().toLocaleDateString())}</em></p>
 `;
 
   for (const group of groups) {
@@ -1136,7 +1222,7 @@ ${groups.map((_, i) =>
 
   let paragraphs = `  <w:p>
     <w:pPr><w:pStyle w:val="BookTitle"/></w:pPr>
-    <w:r><w:t>Bible Outline</w:t></w:r>
+    <w:r><w:t>${x(i18n.t('exportDocTitle'))}</w:t></w:r>
   </w:p>\n`;
 
   groups.forEach((group, gi) => {
@@ -1241,7 +1327,7 @@ ${ODT_LEVELS.map(l => {
     </style:style>`;
 
   const groups = groupHeadingsByBook(headings);
-  let body = `    <text:p text:style-name="P_BT">Bible Outline</text:p>\n`;
+  let body = `    <text:p text:style-name="P_BT">${x(i18n.t('exportDocTitle'))}</text:p>\n`;
   for (const group of groups) {
     body += `    <text:p text:style-name="P_BT">${x(group.bookName)}</text:p>\n`;
     for (const h of group.headings) {
@@ -1297,7 +1383,7 @@ async function exportAsPDF(headings) {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Bible Outline</title>
+  <title>${i18n.t('exportDocTitle')}</title>
   <style>
     body       { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 24px; line-height: 1.7; color: #222; }
     .book-title{ font-size: 20pt; font-weight: 700; color: #5C2008; border-bottom: 2px solid #8B4513; padding-bottom: 6px; margin-top: 48px; }
@@ -1316,8 +1402,8 @@ async function exportAsPDF(headings) {
   <script>window.addEventListener('load', () => window.print());<\/script>
 </head>
 <body>
-  <p class="book-title" style="margin-top:0;">Bible Outline</p>
-  <p><em>Generated on ${new Date().toLocaleDateString()}</em></p>
+  <p class="book-title" style="margin-top:0;">${i18n.t('exportDocTitle')}</p>
+  <p><em>${i18n.t('exportGeneratedOn', new Date().toLocaleDateString())}</em></p>
   ${body}
 </body>
 </html>`;
@@ -1370,14 +1456,14 @@ async function handleImportFile(event) {
   const statusDiv = document.getElementById('importStatus');
   statusDiv.style.display = 'block';
   statusDiv.style.color = '#666';
-  statusDiv.textContent = 'Reading file...';
+  statusDiv.textContent = i18n.t('readingFile');
   
   try {
     const text = await file.text();
     const data = JSON.parse(text);
     
     if (!Array.isArray(data)) {
-      throw new Error('Invalid JSON format. Expected an array.');
+      throw new Error(i18n.t('invalidJson'));
     }
 
     // Support both flat [{text,level,...}] and grouped [{book,headings:[...]}] formats
@@ -1385,7 +1471,7 @@ async function handleImportFile(event) {
       ? data.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
       : data;
 
-    statusDiv.textContent = `Importing ${flatHeadings.length} heading(s)...`;
+    statusDiv.textContent = i18n.t('importProgress', flatHeadings.length);
 
     // Validate and import each heading
     let imported = 0;
@@ -1417,7 +1503,9 @@ async function handleImportFile(event) {
     // Show success message
     statusDiv.style.color = '#2e7d32';
     statusDiv.style.backgroundColor = '#e8f5e9';
-    statusDiv.textContent = `✓ Successfully imported ${imported} heading(s)${skipped > 0 ? ` (${skipped} skipped)` : ''}`;
+    statusDiv.textContent = skipped > 0
+      ? i18n.t('importSuccessWithSkipped', imported, skipped)
+      : i18n.t('importSuccess', imported);
     
     // Reload headings
     await loadHeadings();
@@ -1431,7 +1519,7 @@ async function handleImportFile(event) {
     console.error('Import error:', error);
     statusDiv.style.color = '#d32f2f';
     statusDiv.style.backgroundColor = '#ffebee';
-    statusDiv.textContent = `✗ Error: ${error.message}`;
+    statusDiv.textContent = i18n.t('importError', error.message);
   }
   
   // Reset file input
@@ -1469,7 +1557,7 @@ async function saveOrder() {
     await loadHeadings();
   } catch (err) {
     console.error('Error saving order:', err);
-    alert('Error saving order: ' + err.message);
+    alert(i18n.t('errorSavingOrder', err.message));
   }
 }
 

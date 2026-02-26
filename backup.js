@@ -244,7 +244,7 @@ async function executeLocalBackup(jsonContent, today) {
   }
 
   await saveBackupEntries(entries);
-  return { ok: true, message: `Local ✓` };
+  return { ok: true, message: i18n.t('backupLocalSuccess') };
 }
 
 /**
@@ -257,15 +257,16 @@ async function executeLocalBackup(jsonContent, today) {
 function composeBackupStatusMessage(localSettled, driveSettled) {
   const local = localSettled.status === 'fulfilled'
     ? localSettled.value
-    : { ok: false, message: `Local: ${localSettled.reason}` };
+    : { ok: false, message: i18n.t('backupLocalFailed', localSettled.reason) };
   const drive = driveSettled.status === 'fulfilled'
     ? driveSettled.value
-    : { ok: false, message: `Drive: ${driveSettled.reason}` };
+    : { ok: false, message: i18n.t('backupDriveFailed', driveSettled.reason) };
 
   const parts = [];
-  parts.push(local.ok ? 'Local ✓' : 'Local ✗');
+  // Show the translated success/failure message for each backend
+  parts.push(local.ok ? i18n.t('backupLocalSuccess') : local.message);
   // Drive failure is expected when not configured — show its message, not just ✗
-  parts.push(drive.ok ? 'Drive ✓' : drive.message);
+  parts.push(drive.ok ? i18n.t('driveSuccess') : drive.message);
   return parts.join(' · ');
 }
 
@@ -283,7 +284,7 @@ async function executeBackup() {
 
     if (currentHash === lastHash) {
       await saveBackupDate(today);
-      return { ok: true, message: `No changes since last backup (${today})` };
+      return { ok: true, message: i18n.t('backupNoChange', today) };
     }
 
     const filename = `${BACKUP_FILENAME_PREFIX}${today}.json`;
@@ -298,7 +299,7 @@ async function executeBackup() {
 
   } catch (err) {
     console.error('Backup error:', err);
-    return { ok: false, message: `Backup failed: ${err.message}` };
+    return { ok: false, message: i18n.t('backupFailed', err.message) };
   }
 }
 
@@ -322,7 +323,7 @@ function showBackupStatus(message, type = 'info') {
  * Manual backup: triggered by "Backup Now" button click.
  */
 async function backupNow() {
-  showBackupStatus('Backing up…', 'info');
+  showBackupStatus(i18n.t('backingUp'), 'info');
   const result = await executeBackup();
   showBackupStatus(result.message, result.ok ? 'success' : 'error');
 }

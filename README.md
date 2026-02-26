@@ -19,6 +19,7 @@ A Brave/Chrome extension for creating hierarchical outlines of Bible books with 
 - **Import** — Re-import a previously exported JSON file to restore or merge headings
 - **Grouped Books** — 1–2 Samuel, 1–2 Kings, 1–2 Chronicles, and Ezra–Nehemiah are treated as single outlines
 - **Google Drive Backup** — Optional automatic backup to Google Drive in addition to local Downloads
+- **Multi-language Interface** — Switch the panel language via Settings; supports English, Spanish, French, German, and Vietnamese — including all 66 Bible book names
 
 ## Supported Sites
 
@@ -116,20 +117,43 @@ All export formats include traditional outline numbering (I., A., 1., a., (1), (
 
 Click **Import** and select a JSON file previously exported from this extension. Headings are merged into the existing database.
 
+## Languages
+
+The side panel interface can be switched to any supported language via the **Settings** panel. The selected language is persisted across sessions.
+
+| Language | Code | Book names source |
+|---|---|---|
+| English | `en` | Standard (KJV / OSIS) |
+| Spanish | `es` | Reina-Valera (RVR) |
+| French | `fr` | Louis Segond / TOB |
+| German | `de` | Luther-Bibel |
+| Vietnamese | `vi` | Kinh Thánh 1934 |
+
+All 66 Bible book names are translated in each language. Language names in the selector are always shown in their native script and are never translated.
+
+The extension name and description shown in the Chrome Web Store follow your **browser's** language setting (via Chrome's standard `__MSG__` mechanism), independent of the in-panel language selector.
+
 ## File Structure
 
 ```
 biblia-outline/
-├── manifest.json       # Extension configuration (Manifest V3)
-├── background.js       # Service worker for cross-component messaging
-├── content.js          # Runs on all supported sites — hover button, verse detection
-├── content.css         # Styles for the hover button
-├── sidepanel.html      # Side panel UI
-├── sidepanel.css       # Side panel styles
-├── sidepanel.js        # Side panel logic and all export generators
-├── db.js               # IndexedDB database operations
-├── backup.js           # Local Downloads backup logic
-├── drive.js            # Google Drive backup logic
+├── manifest.json           # Extension configuration (Manifest V3)
+├── background.js           # Service worker for cross-component messaging
+├── content.js              # Runs on all supported sites — hover button, verse detection
+├── content.css             # Styles for the hover button
+├── sidepanel.html          # Side panel UI
+├── sidepanel.css           # Side panel styles
+├── sidepanel.js            # Side panel logic and all export generators
+├── db.js                   # IndexedDB database operations
+├── i18n.js                 # Runtime i18n loader (load/t/localizeDOM)
+├── backup.js               # Local Downloads backup logic
+├── drive.js                # Google Drive backup logic
+├── _locales/
+│   ├── en/messages.json    # English strings (~185 keys)
+│   ├── es/messages.json    # Spanish
+│   ├── fr/messages.json    # French
+│   ├── de/messages.json    # German
+│   └── vi/messages.json    # Vietnamese
 └── icons/
     ├── icon16.png
     ├── icon48.png
@@ -233,3 +257,5 @@ MIT License — free to use, modify, and distribute.
 ## Credits
 
 Created for biblical study and exegesis. Works with [StepBible.org](https://www.stepbible.org/), [YouVersion (bible.com)](https://www.bible.com/), [Bible Gateway](https://www.biblegateway.com/), and [Parabible](https://parabible.com/).
+
+Heading color palettes sourced from **[Open Color](https://yeun.github.io/open-color/)** by Yeun Ju Kim — MIT License.

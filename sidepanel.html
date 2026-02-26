@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bible Outliner</title>
+  <title data-i18n="appName">Bible Outliner</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:wght@600&display=swap" rel="stylesheet">
@@ -18,26 +18,34 @@
         Bible Outliner
       </h1>
       <div class="header-actions">
-        <button id="addHeadingBtn" class="btn btn-primary" title="Add New Heading">
+        <button id="addHeadingBtn" class="btn btn-primary"
+                data-i18n="addHeading" data-i18n-title="addHeadingTitle"
+                title="Add New Heading">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M8 1V15M1 8H15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
           Add Heading
         </button>
-        <button id="reorderBtn" class="btn btn-secondary" title="Reorder Headings">
+        <button id="reorderBtn" class="btn btn-secondary"
+                data-i18n="reorder" data-i18n-title="reorderTitle"
+                title="Reorder Headings">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M2 4H14M2 8H14M2 12H14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
           Reorder
         </button>
         <div class="header-row-break"></div>
-        <button id="importBtn" class="btn btn-secondary" title="Import Outline">
+        <button id="importBtn" class="btn btn-secondary"
+                data-i18n="importBtn" data-i18n-title="importBtnTitle"
+                title="Import Outline">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M14 9v4c0 .5-.2 1-.6 1.4-.4.4-.9.6-1.4.6H4c-.5 0-1-.2-1.4-.6C2.2 14 2 13.5 2 13V9M11 5L8 2M8 2L5 5M8 2v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           Import
         </button>
-        <button id="exportBtn" class="btn btn-secondary" title="Export Outline">
+        <button id="exportBtn" class="btn btn-secondary"
+                data-i18n="exportBtn" data-i18n-title="exportBtnTitle"
+                title="Export Outline">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M14 10V13C14 13.5304 13.7893 14.0391 13.4142 14.4142C13.0391 14.7893 12.5304 15 12 15H4C3.46957 15 2.96086 14.7893 2.58579 14.4142C2.21071 14.0391 2 13.5304 2 13V10M11 5L8 2M8 2L5 5M8 2V10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -48,10 +56,10 @@
 
     <!-- Current Book Display -->
     <div class="current-book">
-      <label class="book-label" for="currentBookSelect">Current Book:</label>
+      <label class="book-label" for="currentBookSelect" data-i18n="currentBookLabel">Current Book:</label>
       <select id="currentBookSelect" class="book-select">
-        <option value="">-- Select Book --</option>
-        <optgroup label="Old Testament">
+        <option value="" data-i18n="selectBook">-- Select Book --</option>
+        <optgroup label="Old Testament" data-i18n-label="oldTestament">
           <option value="Gen">Genesis</option>
           <option value="Exod">Exodus</option>
           <option value="Lev">Leviticus</option>
@@ -92,7 +100,7 @@
           <option value="Zech">Zechariah</option>
           <option value="Mal">Malachi</option>
         </optgroup>
-        <optgroup label="New Testament">
+        <optgroup label="New Testament" data-i18n-label="newTestament">
           <option value="Matt">Matthew</option>
           <option value="Mark">Mark</option>
           <option value="Luke">Luke</option>
@@ -122,7 +130,8 @@
           <option value="Rev">Revelation</option>
         </optgroup>
       </select>
-      <button id="goToBookBtn" class="go-to-book-btn" title="Go to this book in StepBible">
+      <button id="goToBookBtn" class="go-to-book-btn"
+              data-i18n-title="goToBookTitle" title="Go to this book in the Bible">
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
           <path d="M3 8H13M13 8L8 3M13 8L8 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -131,10 +140,10 @@
 
     <!-- Reorder Mode Banner -->
     <div id="reorderBanner" class="reorder-banner" style="display:none;">
-      <span class="reorder-hint">Drag headings to reorder</span>
+      <span class="reorder-hint" data-i18n="dragToReorder">Drag headings to reorder</span>
       <div class="reorder-banner-actions">
-        <button id="saveOrderBtn" class="btn reorder-save-btn">Save Order</button>
-        <button id="cancelReorderBtn" class="btn reorder-cancel-btn">Cancel</button>
+        <button id="saveOrderBtn" class="btn reorder-save-btn" data-i18n="saveOrder">Save Order</button>
+        <button id="cancelReorderBtn" class="btn reorder-cancel-btn" data-i18n="cancelReorder">Cancel</button>
       </div>
     </div>
 
@@ -144,8 +153,8 @@
         <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
           <path d="M6 12H42M6 24H42M6 36H42" stroke="#ccc" stroke-width="3" stroke-linecap="round"/>
         </svg>
-        <p>No headings yet</p>
-        <p class="empty-hint">Click "Add Heading" or click a verse at StepBible.org</p>
+        <p data-i18n="noHeadingsYet">No headings yet</p>
+        <p class="empty-hint" data-i18n="emptyStateHint">Click "Add Heading" or click a verse at StepBible.org</p>
       </div>
       <div id="headingsList" class="headings-list"></div>
     </div>
@@ -157,30 +166,46 @@
           <circle cx="6.5" cy="6.5" r="2" stroke="currentColor" stroke-width="1.3"/>
           <path d="M6.5 1v1M6.5 11v1M1 6.5h1M11 6.5h1M2.4 2.4l.7.7M9.9 9.9l.7.7M9.9 2.4l-.7.7M2.4 9.9l.7-.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
         </svg>
-        Settings
+        <span data-i18n="settingsLabel">Settings</span>
         <svg class="chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
           <path d="M2 3.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </button>
       <div id="settingsPanel" class="settings-panel" style="display:none;">
+        <!-- Language selector -->
+        <div class="theme-section">
+          <span class="backup-label" data-i18n="settingsLanguage">Language:</span>
+          <select id="languageSelect" class="book-select" style="flex:1; max-width:140px;">
+            <option value="en">English</option>
+            <option value="es">Espa&#241;ol</option>
+            <option value="fr">Fran&#231;ais</option>
+            <option value="de">Deutsch</option>
+            <option value="vi">Ti&#7871;ng Vi&#7879;t</option>
+          </select>
+        </div>
         <!-- Color scheme -->
         <div class="theme-section">
-          <span class="backup-label">Color scheme:</span>
+          <span class="backup-label" data-i18n="colorScheme">Color scheme:</span>
           <div class="theme-options">
-            <button class="theme-btn active" data-theme="default">Default</button>
-            <button class="theme-btn" data-theme="gray">Gray</button>
-            <button class="theme-btn" data-theme="blue">Blue</button>
+            <button class="theme-btn active" data-theme="default" data-i18n="themeDefault">Default</button>
+            <button class="theme-btn" data-theme="gray" data-i18n="themeGray">Gray</button>
+            <button class="theme-btn" data-theme="blue" data-i18n="themeBlue">Blue</button>
           </div>
+        </div>
+        <!-- Heading palette -->
+        <div class="palette-section">
+          <span class="backup-label" data-i18n="headingColors">Heading colors:</span>
+          <div id="palettePicker" class="palette-grid"></div>
         </div>
         <hr class="settings-divider">
         <div class="backup-section">
           <div class="backup-folder-row">
-            <span class="backup-label">Downloads subfolder:</span>
+            <span class="backup-label" data-i18n="downloadsSubfolder">Downloads subfolder:</span>
             <input id="backupSubfolderInput" class="backup-subfolder-input"
                    type="text" value="BibleOutlinerBackups" spellcheck="false">
           </div>
           <div class="backup-actions-row">
-            <button id="backupNowBtn" class="btn-small btn-small-primary">Backup Now</button>
+            <button id="backupNowBtn" class="btn-small btn-small-primary" data-i18n="backupNow">Backup Now</button>
             <span id="backupStatus" class="backup-status"></span>
           </div>
         </div>
@@ -195,12 +220,12 @@
               <path d="M59.8 53.65H27.6L13.85 77.45c1.35.8 2.9 1.2 4.5 1.2h50.6c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
               <path d="M73.4 26.95l-12.65-21.9c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 28H87.2c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
             </svg>
-            <span class="backup-label">Google Drive backup</span>
+            <span class="backup-label" data-i18n="googleDriveBackup">Google Drive backup</span>
             <span id="driveUserEmail" class="drive-email" style="display:none;"></span>
           </div>
           <div class="drive-status-row">
-            <button id="driveConnectBtn" class="btn-small btn-small-primary" style="display:none;">Connect</button>
-            <button id="driveDisconnectBtn" class="btn-small" style="display:none;">Disconnect</button>
+            <button id="driveConnectBtn" class="btn-small btn-small-primary" data-i18n="driveConnect" style="display:none;">Connect</button>
+            <button id="driveDisconnectBtn" class="btn-small" data-i18n="driveDisconnect" style="display:none;">Disconnect</button>
             <span id="driveStatus" class="drive-status"></span>
           </div>
         </div>
@@ -212,15 +237,15 @@
   <div id="headingModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2 id="modalTitle">Add Heading</h2>
+        <h2 id="modalTitle" data-i18n="addHeadingModal">Add Heading</h2>
         <button id="closeModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <!-- Book Selection -->
         <div class="form-group">
-          <label for="bookSelect">Book</label>
+          <label for="bookSelect" data-i18n="bookLabel">Book</label>
           <select id="bookSelect" class="form-control">
-            <optgroup label="Old Testament">
+            <optgroup label="Old Testament" data-i18n-label="oldTestament">
               <option value="Gen">Genesis</option>
               <option value="Exod">Exodus</option>
               <option value="Lev">Leviticus</option>
@@ -261,7 +286,7 @@
               <option value="Zech">Zechariah</option>
               <option value="Mal">Malachi</option>
             </optgroup>
-            <optgroup label="New Testament">
+            <optgroup label="New Testament" data-i18n-label="newTestament">
               <option value="Matt">Matthew</option>
               <option value="Mark">Mark</option>
               <option value="Luke">Luke</option>
@@ -296,11 +321,11 @@
         <!-- Chapter and Verse -->
         <div class="form-row">
           <div class="form-group">
-            <label for="chapterInput">Chapter</label>
+            <label for="chapterInput" data-i18n="chapterLabel">Chapter</label>
             <input type="number" id="chapterInput" class="form-control" min="1" placeholder="1">
           </div>
           <div class="form-group">
-            <label for="verseInput">Verse</label>
+            <label for="verseInput" data-i18n="verseLabel">Verse</label>
             <input type="number" id="verseInput" class="form-control" min="1" placeholder="1">
           </div>
         </div>
@@ -309,13 +334,14 @@
         <div class="form-group">
           <label class="check-label">
             <input type="checkbox" id="midVerseCheck">
-            Mid-verse <span class="check-hint">(appends "b" to verse reference)</span>
+            <span data-i18n="midVerse">Mid-verse</span>
+            <span class="check-hint" data-i18n="midVerseHint">(appends "b" to verse reference)</span>
           </label>
         </div>
 
         <!-- Heading Level -->
         <div class="form-group">
-          <label>Heading Level</label>
+          <label data-i18n="headingLevel">Heading Level</label>
           <div class="level-buttons">
             <button class="level-btn active" data-level="1">H1</button>
             <button class="level-btn" data-level="2">H2</button>
@@ -328,19 +354,23 @@
 
         <!-- Heading Text -->
         <div class="form-group">
-          <label for="headingText">Heading Text</label>
-          <input type="text" id="headingText" class="form-control" placeholder="Enter heading text">
+          <label for="headingText" data-i18n="headingTextLabel">Heading Text</label>
+          <input type="text" id="headingText" class="form-control"
+                 data-i18n-placeholder="headingTextPlaceholder"
+                 placeholder="Enter heading text">
         </div>
 
         <!-- Notes -->
         <div class="form-group">
-          <label for="headingNotes">Notes</label>
-          <textarea id="headingNotes" class="form-control" rows="3" placeholder="Optional notes…"></textarea>
+          <label for="headingNotes" data-i18n="notesLabel">Notes</label>
+          <textarea id="headingNotes" class="form-control" rows="3"
+                    data-i18n-placeholder="notesPlaceholder"
+                    placeholder="Optional notes&#8230;"></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
-        <button id="saveHeadingBtn" class="btn btn-primary">Save Heading</button>
+        <button id="cancelBtn" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
+        <button id="saveHeadingBtn" class="btn btn-primary" data-i18n="saveHeading">Save Heading</button>
       </div>
     </div>
   </div>
@@ -349,18 +379,18 @@
   <div id="exportModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Export Outline</h2>
+        <h2 data-i18n="exportOutline">Export Outline</h2>
         <button id="closeExportModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <div class="export-scope">
           <label class="scope-label">
             <input type="radio" name="exportScope" value="all" checked>
-            Entire outline
+            <span data-i18n="entireOutline">Entire outline</span>
           </label>
           <label class="scope-label">
             <input type="radio" name="exportScope" value="current">
-            Current book only
+            <span data-i18n="currentBookOnly">Current book only</span>
           </label>
         </div>
         <div class="export-options">
@@ -369,7 +399,7 @@
               <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Copy to Clipboard</span>
+            <span data-i18n="copyClipboard">Copy to Clipboard</span>
           </button>
           <button id="exportMarkdownBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -377,27 +407,27 @@
               <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <text x="6" y="20" font-size="6.5" font-weight="bold" fill="currentColor" font-family="sans-serif">.MD</text>
             </svg>
-            <span>Export as Markdown</span>
+            <span data-i18n="exportMarkdown">Export as Markdown</span>
           </button>
           <button id="exportHtmlBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
-            <span>Export as HTML</span>
+            <span data-i18n="exportHtml">Export as HTML</span>
           </button>
           <button id="exportXmlBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M14 2v6h6M10 13l-2 2 2 2M14 13l2 2-2 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Export as XML</span>
+            <span data-i18n="exportXml">Export as XML</span>
           </button>
           <button id="exportJsonBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M14 2v6h6M10 12h4M10 16h4M10 8h2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Export as JSON</span>
+            <span data-i18n="exportJson">Export as JSON</span>
           </button>
           <button id="exportWordBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -405,7 +435,7 @@
               <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <text x="5.5" y="20" font-size="6.5" font-weight="bold" fill="currentColor" font-family="sans-serif">DOCX</text>
             </svg>
-            <span>Export as Word (.docx)</span>
+            <span data-i18n="exportWord">Export as Word (.docx)</span>
           </button>
           <button id="exportOdtBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -413,7 +443,7 @@
               <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <text x="6.5" y="20" font-size="6.5" font-weight="bold" fill="currentColor" font-family="sans-serif">ODT</text>
             </svg>
-            <span>Export as LibreOffice (.odt)</span>
+            <span data-i18n="exportOdt">Export as LibreOffice (.odt)</span>
           </button>
           <button id="exportPdfBtn" class="export-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -421,7 +451,7 @@
               <path d="M14 2v6h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               <text x="6.5" y="20" font-size="6.5" font-weight="bold" fill="currentColor" font-family="sans-serif">PDF</text>
             </svg>
-            <span>Export as PDF</span>
+            <span data-i18n="exportPdf">Export as PDF</span>
           </button>
         </div>
       </div>
@@ -432,13 +462,13 @@
   <div id="importModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Import Outline</h2>
+        <h2 data-i18n="importOutline">Import Outline</h2>
         <button id="closeImportModal" class="close-btn">&times;</button>
       </div>
       <div class="modal-body">
         <div class="import-section">
-          <p style="font-size: 13px; color: #666; margin-bottom: 16px;">
-            Import a previously exported JSON file to restore your outline. 
+          <p data-i18n="importInstructions" style="font-size: 13px; color: #666; margin-bottom: 16px;">
+            Import a previously exported JSON file to restore your outline.
             This will add the headings to your current database.
           </p>
           <input type="file" id="importFileInput" accept=".json" style="display: none;">
@@ -446,7 +476,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5m0 0L7 8m5-5v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            <span>Choose JSON File</span>
+            <span data-i18n="chooseJsonFile">Choose JSON File</span>
           </button>
           <div id="importStatus" style="margin-top: 16px; font-size: 13px; display: none; padding: 12px; border-radius: 6px;"></div>
         </div>
@@ -455,6 +485,7 @@
   </div>
 
   <script src="db.js"></script>
+  <script src="i18n.js"></script>
   <script src="backup.js"></script>
   <script src="drive.js"></script>
   <script src="sidepanel.js"></script>

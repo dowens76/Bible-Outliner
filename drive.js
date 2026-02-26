@@ -417,7 +417,7 @@ async function executeDriveBackup(jsonContent, filename, interactive = false) {
       await saveDriveEntries(entries);
     }
 
-    return { ok: true, message: 'Drive ✓' };
+    return { ok: true, message: i18n.t('driveSuccess') };
   } catch (err) {
     // Token errors (not signed in / consent not granted) are expected when Drive not configured
     const isAuthError = err.message.includes('OAuth2') ||
@@ -425,10 +425,10 @@ async function executeDriveBackup(jsonContent, filename, interactive = false) {
                         err.message.includes('not granted') ||
                         err.message.includes('interaction');
     if (isAuthError) {
-      return { ok: false, message: 'Drive: not signed in' };
+      return { ok: false, message: i18n.t('backupDriveNotSignedIn') };
     }
     console.error('Drive backup error:', err);
-    return { ok: false, message: `Drive: ${err.message}` };
+    return { ok: false, message: i18n.t('backupDriveFailed', err.message) };
   }
 }
 
@@ -495,13 +495,13 @@ async function initDrive() {
   if (connectBtn) {
     connectBtn.addEventListener('click', async () => {
       connectBtn.disabled = true;
-      showDriveStatus('Connecting…', 'info');
+      showDriveStatus(i18n.t('driveConnecting'), 'info');
       try {
         const token = await driveGetToken(true);
         const email = await driveFetchEmail(token);
         await saveDriveConnectionState(true, email);
         await refreshDriveUI();
-        showDriveStatus(`Connected as ${email} — backing up…`, 'info');
+        showDriveStatus(i18n.t('driveConnectedBacking', email), 'info');
 
         // Immediately back up current data to Drive so the user doesn't have
         // to wait until the next change or manually trigger a backup.
@@ -512,12 +512,12 @@ async function initDrive() {
         const result = await executeDriveBackup(jsonContent, filename, false);
         showDriveStatus(
           result.ok
-            ? `Connected as ${email} · Drive ✓`
-            : `Connected as ${email} · ${result.message}`,
+            ? i18n.t('driveConnectedSuccess', email)
+            : `${email} · ${result.message}`,
           result.ok ? 'success' : 'error'
         );
       } catch (err) {
-        showDriveStatus('Connection failed: ' + err.message, 'error');
+        showDriveStatus(i18n.t('driveConnectionFailed', err.message), 'error');
       } finally {
         connectBtn.disabled = false;
       }
@@ -527,13 +527,13 @@ async function initDrive() {
   if (disconnectBtn) {
     disconnectBtn.addEventListener('click', async () => {
       disconnectBtn.disabled = true;
-      showDriveStatus('Disconnecting…', 'info');
+      showDriveStatus(i18n.t('driveDisconnecting'), 'info');
       try {
         await driveDisconnect();
         await refreshDriveUI();
-        showDriveStatus('Disconnected', 'info');
+        showDriveStatus(i18n.t('driveDisconnected'), 'info');
       } catch (err) {
-        showDriveStatus('Error: ' + err.message, 'error');
+        showDriveStatus(i18n.t('driveError', err.message), 'error');
       } finally {
         disconnectBtn.disabled = false;
       }

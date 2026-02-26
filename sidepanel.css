@@ -42,6 +42,14 @@
 
   /* Scrollbar */
   --scrollbar-hover: #8B6840;
+
+  /* Heading level colors (overridden by palette picker) */
+  --level1-color: #7B3410;
+  --level2-color: #A0522D;
+  --level3-color: #C07840;
+  --level4-color: #9E7B50;
+  --level5-color: #B4B0C8;
+  --level6-color: #8B8AA0;
 }
 
 /* ── Gray theme ──────────────────────────────────────────────────────────── */
@@ -240,7 +248,7 @@ body {
   padding: 12px;
   margin-bottom: 4px;
   background: var(--card);
-  border-left: 4px solid var(--accent);
+  border-left: 4px solid var(--level1-color);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -254,37 +262,36 @@ body {
 
 .heading-item.active {
   background: var(--bg-active);
-  border-left-color: var(--accent-muted);
 }
 
 .heading-item.level-1 {
   border-left-width: 4px;
-  border-left-color: var(--accent);
+  border-left-color: var(--level1-color);
 }
 
 .heading-item.level-2 {
   margin-left: 15px;
-  border-left-color: var(--accent-mid);
+  border-left-color: var(--level2-color);
 }
 
 .heading-item.level-3 {
   margin-left: 30px;
-  border-left-color: var(--accent-muted);
+  border-left-color: var(--level3-color);
 }
 
 .heading-item.level-4 {
   margin-left: 45px;
-  border-left-color: var(--accent-subtle);
+  border-left-color: var(--level4-color);
 }
 
 .heading-item.level-5 {
   margin-left: 60px;
-  border-left-color: #B4B0C8;
+  border-left-color: var(--level5-color);
 }
 
 .heading-item.level-6 {
   margin-left: 75px;
-  border-left-color: #8B8AA0;
+  border-left-color: var(--level6-color);
 }
 
 .heading-text {
@@ -308,6 +315,13 @@ body {
   margin-right: 3px;
   font-variant-numeric: tabular-nums;
 }
+
+.heading-item.level-1 .outline-num { color: var(--level1-color); }
+.heading-item.level-2 .outline-num { color: var(--level2-color); }
+.heading-item.level-3 .outline-num { color: var(--level3-color); }
+.heading-item.level-4 .outline-num { color: var(--level4-color); }
+.heading-item.level-5 .outline-num { color: var(--level5-color); }
+.heading-item.level-6 .outline-num { color: var(--level6-color); }
 
 .heading-reference {
   font-size: 12px;
@@ -929,4 +943,56 @@ body.reorder-mode .heading-item:hover .heading-actions {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
+}
+
+/* ── Heading palette picker ──────────────────────────────────────────────── */
+
+.palette-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.palette-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.palette-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 5px;
+  border: 1.5px solid transparent;
+  border-radius: 5px;
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.palette-chip:hover {
+  border-color: var(--accent-border);
+}
+
+.palette-chip.active {
+  border-color: var(--accent);
+}
+
+.palette-swatches {
+  display: flex;
+  gap: 1px;
+}
+
+.palette-swatch {
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.palette-chip-name {
+  font-size: 9px;
+  color: #666;
+  white-space: nowrap;
 }
