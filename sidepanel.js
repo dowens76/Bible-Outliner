@@ -50,9 +50,35 @@ let selectedHeadingLevel = 1;
 let editingHeadingId = null;
 let isReorderMode = false;
 
+// ── Color scheme ─────────────────────────────────────────────────────────────
+
+function applyColorScheme(theme) {
+  document.body.classList.remove('theme-gray', 'theme-blue');
+  if (theme === 'gray') document.body.classList.add('theme-gray');
+  if (theme === 'blue') document.body.classList.add('theme-blue');
+
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === theme);
+  });
+}
+
+async function initColorScheme() {
+  const saved = (await db.getSetting('colorScheme')) || 'default';
+  applyColorScheme(saved);
+
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const theme = btn.dataset.theme;
+      applyColorScheme(theme);
+      await db.setSetting('colorScheme', theme);
+    });
+  });
+}
+
 // Initialize
 async function init() {
   await db.init();
+  await initColorScheme();   // apply saved theme before rendering
   setupEventListeners();
   await loadCurrentBook();
 
@@ -337,6 +363,10 @@ function getTabContext(url) {
     const m = url.match(/[?&]q=[^&]*version=([^|&]+)/);
     return { site: 'stepbible', version: m ? decodeURIComponent(m[1]) : null, versionId: null };
   }
+  // Check parabible.com before bible.com — "parabible.com" contains "bible.com" as a substring
+  if (url.includes('parabible.com')) {
+    return { site: 'parabible', version: null, versionId: null };
+  }
   if (url.includes('bible.com')) {
     const mId  = url.match(/bible\.com\/bible\/(\d+)\//);
     const mVer = url.match(/bible\.com\/bible\/\d+\/[A-Z0-9]+\.\d+\.([A-Z0-9]+)/i);
@@ -349,9 +379,6 @@ function getTabContext(url) {
   if (url.includes('biblegateway.com')) {
     const m = url.match(/[?&]version=([^&]+)/);
     return { site: 'biblegateway', version: m ? decodeURIComponent(m[1]) : null, versionId: null };
-  }
-  if (url.includes('parabible.com')) {
-    return { site: 'parabible', version: null, versionId: null };
   }
   return { site: null, version: null, versionId: null };
 }

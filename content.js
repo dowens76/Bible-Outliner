@@ -7,9 +7,10 @@ console.log('Bible Outline Builder content script loaded');
 const CURRENT_SITE = (() => {
   const h = window.location.hostname;
   if (h.includes('stepbible.org'))    return 'stepbible';
-  if (h.includes('bible.com'))        return 'youversion';
   if (h.includes('biblegateway.com')) return 'biblegateway';
+  // Check parabible.com before bible.com — "parabible.com" contains "bible.com" as a substring
   if (h.includes('parabible.com'))    return 'parabible';
+  if (h.includes('bible.com'))        return 'youversion';
   return 'unknown';
 })();
 
