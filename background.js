@@ -18,9 +18,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     });
   } else if (message.type === 'GET_CURRENT_BOOK') {
-    // Get current book from StepBible page
+    // Get current book from the active Bible site page
+    const SUPPORTED_HOSTS = ['stepbible.org', 'bible.com', 'biblegateway.com', 'parabible.com'];
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0] && tabs[0].url.includes('stepbible.org')) {
+      if (tabs[0] && SUPPORTED_HOSTS.some(s => (tabs[0].url || '').includes(s))) {
         chrome.tabs.sendMessage(tabs[0].id, { type: 'GET_CURRENT_BOOK' }, (response) => {
           sendResponse(response);
         });

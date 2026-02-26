@@ -14,6 +14,9 @@
   ],
   "host_permissions": [
     "https://www.stepbible.org/*",
+    "https://www.bible.com/*",
+    "https://www.biblegateway.com/*",
+    "https://parabible.com/*",
     "https://www.googleapis.com/*",
     "https://oauth2.googleapis.com/*"
   ],
@@ -29,6 +32,21 @@
       "js": ["content.js"],
       "run_at": "document_end",
       "all_frames": true
+    },
+    {
+      "matches": ["https://www.bible.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.biblegateway.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://parabible.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {

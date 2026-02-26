@@ -159,8 +159,10 @@ function setupEventListeners() {
     if (!currentBook) return;
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]) {
-      const version = await getCurrentVersion();
-      const url = `https://www.stepbible.org/?q=version=${version}|reference=${currentBook}.1&options=NVHUG`;
+      const ctx       = getTabContext(tabs[0].url);
+      const version   = ctx.version   || (await db.getSetting('bibleVersion'))   || 'ESV';
+      const versionId = ctx.versionId || (await db.getSetting('bibleVersionId')) || '1';
+      const url       = buildNavigationUrl(ctx.site, currentBook, '1', version, versionId);
       await chrome.tabs.update(tabs[0].id, { url });
     }
   });
@@ -300,66 +302,131 @@ function createHeadingElement(heading) {
   return div;
 }
 
-// ── Bible version detection ───────────────────────────────────────────────────
+// ── Book code maps ────────────────────────────────────────────────────────────
+
+// OSIS → USFM (YouVersion uses USFM 3-letter codes)
+// content.js has the same data; duplicated here because the two files run in
+// separate JS contexts with no module sharing.
+const OSIS_TO_USFM = {
+  Gen:'GEN', Exod:'EXO', Lev:'LEV', Num:'NUM', Deut:'DEU',
+  Josh:'JOS', Judg:'JDG', Ruth:'RUT', '1Sam':'1SA', '2Sam':'2SA',
+  '1Kgs':'1KI', '2Kgs':'2KI', '1Chr':'1CH', '2Chr':'2CH',
+  Ezra:'EZR', Neh:'NEH', Esth:'EST', Job:'JOB', Ps:'PSA',
+  Prov:'PRO', Eccl:'ECC', Song:'SNG', Isa:'ISA', Jer:'JER',
+  Lam:'LAM', Ezek:'EZK', Dan:'DAN', Hos:'HOS', Joel:'JOL',
+  Amos:'AMO', Obad:'OBA', Jonah:'JON', Mic:'MIC', Nah:'NAM',
+  Hab:'HAB', Zeph:'ZEP', Hag:'HAG', Zech:'ZEC', Mal:'MAL',
+  Matt:'MAT', Mark:'MRK', Luke:'LUK', John:'JHN', Acts:'ACT',
+  Rom:'ROM', '1Cor':'1CO', '2Cor':'2CO', Gal:'GAL', Eph:'EPH',
+  Phil:'PHP', Col:'COL', '1Thess':'1TH', '2Thess':'2TH',
+  '1Tim':'1TI', '2Tim':'2TI', Titus:'TIT', Phlm:'PHM',
+  Heb:'HEB', Jas:'JAS', '1Pet':'1PE', '2Pet':'2PE',
+  '1John':'1JN', '2John':'2JN', '3John':'3JN', Jude:'JUD', Rev:'REV'
+};
+
+// ── Tab context & navigation ──────────────────────────────────────────────────
 
 /**
- * Extract the Bible version code from a StepBible URL.
- * Returns null if the URL is not from stepbible.org or has no version parameter.
- * e.g. "https://www.stepbible.org/?q=version=NIV|reference=Gen.1" → "NIV"
- *
- * Future sites: add additional branches here keyed on url hostname.
+ * Parse site, version code, and (for YouVersion) numeric version ID from a tab URL.
  * @param {string} url
- * @returns {string|null}
+ * @returns {{ site: string|null, version: string|null, versionId: string|null }}
  */
-function getVersionFromTabUrl(url) {
-  if (!url || !url.includes('stepbible.org')) return null;
-  const match = url.match(/[?&]q=[^&]*version=([^|&]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+function getTabContext(url) {
+  if (!url) return { site: null, version: null, versionId: null };
+  if (url.includes('stepbible.org')) {
+    const m = url.match(/[?&]q=[^&]*version=([^|&]+)/);
+    return { site: 'stepbible', version: m ? decodeURIComponent(m[1]) : null, versionId: null };
+  }
+  if (url.includes('bible.com')) {
+    const mId  = url.match(/bible\.com\/bible\/(\d+)\//);
+    const mVer = url.match(/bible\.com\/bible\/\d+\/[A-Z0-9]+\.\d+\.([A-Z0-9]+)/i);
+    return {
+      site: 'youversion',
+      version:   mVer ? mVer[1]  : null,
+      versionId: mId  ? mId[1]   : null
+    };
+  }
+  if (url.includes('biblegateway.com')) {
+    const m = url.match(/[?&]version=([^&]+)/);
+    return { site: 'biblegateway', version: m ? decodeURIComponent(m[1]) : null, versionId: null };
+  }
+  if (url.includes('parabible.com')) {
+    return { site: 'parabible', version: null, versionId: null };
+  }
+  return { site: null, version: null, versionId: null };
+}
+
+/**
+ * Build a navigation URL for the given site, book, chapter, and version.
+ * @param {string} site
+ * @param {string} osisBook  - OSIS book code, e.g. "Gen"
+ * @param {string} chapter   - chapter number as string
+ * @param {string|null} version    - version code, e.g. "ESV"
+ * @param {string|null} versionId  - numeric ID (YouVersion only), e.g. "59"
+ * @returns {string}
+ */
+function buildNavigationUrl(site, osisBook, chapter, version, versionId) {
+  switch (site) {
+    case 'youversion': {
+      const uvBook = OSIS_TO_USFM[osisBook] || osisBook.toUpperCase();
+      return `https://www.bible.com/bible/${versionId || '1'}/${uvBook}.${chapter}.${version || 'KJV'}`;
+    }
+    case 'biblegateway': {
+      const name    = getBookName(osisBook);
+      const encoded = encodeURIComponent(`${name} ${chapter}`);
+      return `https://www.biblegateway.com/passage/?search=${encoded}&version=${version || 'ESV'}`;
+    }
+    case 'parabible': {
+      const name = getBookName(osisBook);
+      return `https://parabible.com/${encodeURIComponent(name)}/${chapter}`;
+    }
+    default: // stepbible or unknown — fall back to StepBible
+      return `https://www.stepbible.org/?q=version=${version || 'ESV'}|reference=${osisBook}.${chapter}&options=NVHUG`;
+  }
 }
 
 /**
  * Get the Bible version to use for navigation URLs.
- * 1. Reads the version from the currently-active tab's URL (most up-to-date).
- * 2. Saves it to db.settings so it persists across sessions.
- * 3. Falls back to the stored setting if no StepBible tab is active.
+ * 1. Reads context from the currently-active tab's URL (most up-to-date).
+ * 2. Persists version (and versionId) to db.settings for next session.
+ * 3. Falls back to the stored setting if no supported tab is active.
  * 4. Final fallback: 'ESV'.
  * @returns {Promise<string>}
  */
 async function getCurrentVersion() {
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const version = getVersionFromTabUrl(tabs[0]?.url);
-    if (version) {
-      await db.setSetting('bibleVersion', version);
-      return version;
+    const ctx = getTabContext(tabs[0]?.url);
+    if (ctx.version) {
+      await db.setSetting('bibleVersion', ctx.version);
+      if (ctx.versionId) await db.setSetting('bibleVersionId', ctx.versionId);
+      return ctx.version;
     }
   } catch (_) {}
-  const stored = await db.getSetting('bibleVersion');
-  return stored || 'ESV';
+  return (await db.getSetting('bibleVersion')) || 'ESV';
 }
 
-// Navigate to verse in StepBible
+// Navigate to a verse reference on whatever Bible site is currently active
 async function navigateToVerse(reference) {
   console.log('Navigating to verse:', reference);
-  
+
   // Parse the reference
   const parts = reference.split('.');
-  const book = parts[0];
+  const book    = parts[0];
   const chapter = parts[1];
-  const verse = parts[2];
-  
+
   try {
-    // Get the active tab
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]) {
-      // First, navigate to the chapter (in case it's not loaded)
-      const version = await getCurrentVersion();
-      const stepBibleUrl = `https://www.stepbible.org/?q=version=${version}|reference=${book}.${chapter}&options=NVHUG`;
-      console.log('Navigating to:', stepBibleUrl);
-      
+      const ctx       = getTabContext(tabs[0].url);
+      const version   = ctx.version   || (await db.getSetting('bibleVersion'))   || 'ESV';
+      const versionId = ctx.versionId || (await db.getSetting('bibleVersionId')) || '1';
+      const url       = buildNavigationUrl(ctx.site, book, chapter, version, versionId);
+      console.log('Navigating to:', url);
+
       // Update the tab URL
-      await chrome.tabs.update(tabs[0].id, { url: stepBibleUrl });
-      
+      await chrome.tabs.update(tabs[0].id, { url });
+
       // Wait a moment for page to load, then scroll to verse
       setTimeout(async () => {
         chrome.runtime.sendMessage({
@@ -371,7 +438,7 @@ async function navigateToVerse(reference) {
   } catch (error) {
     console.error('Error navigating to verse:', error);
   }
-  
+
   // Highlight this heading in the side panel
   highlightHeadingByReference(reference);
 }
