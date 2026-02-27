@@ -517,5 +517,80 @@
   },
   "exportGeneratedOn": {
     "message": "Generado el $1"
+  },
+  "activeSet": {
+    "message": "Esquema:"
+  },
+  "manageSets": {
+    "message": "Administrar esquemas"
+  },
+  "addSet": {
+    "message": "Nuevo esquema"
+  },
+  "editSetInline": {
+    "message": "Editar"
+  },
+  "deleteSet": {
+    "message": "Eliminar"
+  },
+  "setNameLabel": {
+    "message": "Nombre:"
+  },
+  "setNamePlaceholder": {
+    "message": "Nombre del esquema"
+  },
+  "setLanguageLabel": {
+    "message": "Idioma:"
+  },
+  "saveNewSet": {
+    "message": "Agregar"
+  },
+  "saveEditSet": {
+    "message": "Guardar"
+  },
+  "cancelSet": {
+    "message": "Cancelar"
+  },
+  "confirmDeleteSet": {
+    "message": "¿Eliminar '$1' y sus $2 título(s)? No se puede deshacer."
+  },
+  "defaultSetName": {
+    "message": "Predeterminado"
+  },
+  "copyFromSet": {
+    "message": "Copiar de esquema"
+  },
+  "copySourceLabel": {
+    "message": "Fuente:"
+  },
+  "copyScopeLabel": {
+    "message": "Alcance:"
+  },
+  "copyAllBooks": {
+    "message": "Todo el esquema"
+  },
+  "copyCurrentBook": {
+    "message": "Libro actual"
+  },
+  "copyModeLabel": {
+    "message": "Modo:"
+  },
+  "copyModeAppend": {
+    "message": "Añadir"
+  },
+  "copyModeReplace": {
+    "message": "Reemplazar"
+  },
+  "copyBtn": {
+    "message": "Copiar"
+  },
+  "confirmCopyReplace": {
+    "message": "Esto reemplazará $1 título(s) en el alcance seleccionado. Los importados estarán entre [corchetes]. ¿Continuar?"
+  },
+  "copySuccess": {
+    "message": "Se copiaron $1 título(s)."
+  },
+  "copyNoSource": {
+    "message": "No se encontraron títulos en el alcance seleccionado."
   }
 }

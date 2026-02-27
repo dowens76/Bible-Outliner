@@ -18,6 +18,7 @@ A Brave/Chrome extension for creating hierarchical outlines of Bible books with 
 - **Copy to Clipboard** — Copy the outline as plain text directly to the clipboard (no download needed)
 - **Import** — Re-import a previously exported JSON file to restore or merge headings
 - **Grouped Books** — 1–2 Samuel, 1–2 Kings, 1–2 Chronicles, and Ezra–Nehemiah are treated as single outlines
+- **Multiple Outline Sets** — Create any number of named outline sets (e.g. "English Study", "Vietnamese Translation"), each tagged with a language; switch the active set instantly from the set selector bar
 - **Google Drive Backup** — Optional automatic backup to Google Drive in addition to local Downloads
 - **Multi-language Interface** — Switch the panel language via Settings; supports English, Spanish, French, German, and Vietnamese — including all 66 Bible book names
 
@@ -85,6 +86,20 @@ Ranges are calculated automatically:
 - For mid-verse headings, the preceding heading at the same level ends at the "a" half of the same verse
 - Ranges are displayed in parentheses: `(1:1–2:5)`
 - Grouped books (e.g., 1–2 Samuel) extend ranges across both books
+
+### Outline Sets
+
+The **set selector bar** (between the header and the book selector) shows the active outline set. Each set has a name and an associated language tag (ISO 639-1).
+
+**Switching sets:** Choose a different set in the selector; the headings list instantly reflects the active set.
+
+**Managing sets:** Click the ⚙ button next to the set selector to open the **Manage Outlines** modal:
+- Each row shows the set name and its language (rendered in the current interface language).
+- Click ✏ **Edit** to rename a set or change its language.
+- Click 🗑 **Delete** to permanently remove a set and all its headings (the last remaining set cannot be deleted).
+- Use the **New Outline** form to add a set — enter a name and pick a language from the ~70 ISO 639-1 options.
+
+All headings added while a set is active are stored under that set. Exports and copies include only the headings of the currently active set.
 
 ### Reordering Headings
 
@@ -162,6 +177,14 @@ biblia-outline/
 
 ## Database Schema
 
+**OutlineSets table (IndexedDB, v3):**
+
+| Field | Description |
+|---|---|
+| `id` | Auto-incrementing unique identifier |
+| `name` | User-defined set name (e.g., "English Study") |
+| `lang` | ISO 639-1 language code (e.g., `en`, `vi`) |
+
 **Headings table (IndexedDB):**
 
 | Field | Description |
@@ -172,6 +195,7 @@ biblia-outline/
 | `level` | Heading level 1–6 |
 | `text` | Heading text |
 | `notes` | Optional notes (may be empty) |
+| `setId` | Foreign key into `outlineSets.id` |
 | `sortKey` | Computed sort key for canonical ordering |
 | `position` | Integer position for manual ordering (optional) |
 | `createdAt` | Timestamp |

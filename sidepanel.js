@@ -68,6 +68,9 @@ let currentHeadings = [];
 let selectedHeadingLevel = 1;
 let editingHeadingId = null;
 let isReorderMode = false;
+let currentSetId = null;
+let editingSetId = null;   // null = add-mode in manage-sets form; int = edit-mode
+let savedLang = 'en';      // UI language code, set during init()
 
 // ── Color scheme ─────────────────────────────────────────────────────────────
 
@@ -143,12 +146,315 @@ async function initHeadingPalette() {
   applyHeadingPalette(saved);
 }
 
+// ── Outline Sets ──────────────────────────────────────────────────────────────
+
+// ~70 ISO 639-1 codes for the language picker
+const COMMON_LANGS = [
+  'af','am','ar','az','be','bg','bn','ca','cs','cy','da','de','el','en','es',
+  'et','eu','fa','fi','fr','ga','gu','he','hi','hr','hu','hy','id','ig','is',
+  'it','ja','ka','km','kn','ko','lt','lv','mk','ml','mn','mr','ms','my','ne',
+  'nl','no','pa','pl','pt','ro','ru','si','sk','sl','sq','sr','sv','sw','ta',
+  'te','th','tl','tr','uk','ur','uz','vi','xh','yo','zh','zu'
+];
+
+/**
+ * Render a language code as a human-readable name in the given locale.
+ * Falls back to the raw code if Intl.DisplayNames is unsupported.
+ */
+function getLangName(code, locale) {
+  try {
+    return new Intl.DisplayNames([locale || 'en'], { type: 'language' }).of(code) || code;
+  } catch (_) {
+    return code;
+  }
+}
+
+/** Populate a <select> with all COMMON_LANGS sorted by their name in `locale`. */
+function populateLangPicker(selectEl, currentLang, locale) {
+  const opts = COMMON_LANGS
+    .map(code => ({ code, name: getLangName(code, locale) }))
+    .sort((a, b) => a.name.localeCompare(b.name, locale));
+  selectEl.innerHTML = '';
+  opts.forEach(({ code, name }) => {
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = name;
+    if (code === currentLang) opt.selected = true;
+    selectEl.appendChild(opt);
+  });
+}
+
+/** Re-populate the activeSetSelect options from the database. */
+async function refreshSetSelector() {
+  const sets = await db.getOutlineSets();
+  const sel = document.getElementById('activeSetSelect');
+  const prevId = currentSetId;
+  sel.innerHTML = '';
+  sets.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+  // Restore selected value
+  const still = sets.some(s => s.id === prevId);
+  sel.value = still ? prevId : (sets[0]?.id ?? '');
+  // Show copy-from button only when there are 2+ sets
+  const copyBtn = document.getElementById('copyFromSetBtn');
+  if (copyBtn) copyBtn.style.display = sets.length > 1 ? '' : 'none';
+}
+
+/** Initialize the outline-sets bar and manage-sets modal. Called from init(). */
+async function initSets() {
+  // Populate selector
+  const sets = await db.getOutlineSets();
+  const sel = document.getElementById('activeSetSelect');
+  sel.innerHTML = '';
+  sets.forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+
+  // Restore saved active set (fall back to first)
+  const rawId = await db.getSetting('activeSetId');
+  let targetId = rawId != null ? Number(rawId) : null;
+  if (!sets.some(s => s.id === targetId)) targetId = sets[0]?.id ?? null;
+  currentSetId = targetId;
+  if (targetId != null) sel.value = targetId;
+
+  // Populate language picker using current UI locale
+  populateLangPicker(document.getElementById('setLangSelect'), 'en', savedLang);
+
+  // Show copy-from button only when there are 2+ sets
+  const copyBtn = document.getElementById('copyFromSetBtn');
+  if (copyBtn) copyBtn.style.display = sets.length > 1 ? '' : 'none';
+
+  // ── Wire events ────────────────────────────────────────────────────────────
+
+  sel.addEventListener('change', async (e) => {
+    currentSetId = parseInt(e.target.value, 10);
+    await db.setSetting('activeSetId', currentSetId);
+    await loadHeadings();
+  });
+
+  document.getElementById('manageSetsBtn').addEventListener('click', openManageSetsModal);
+  document.getElementById('closeManageSetsModal').addEventListener('click', closeManageSetsModal);
+  document.getElementById('manageSetsModal').addEventListener('click', (e) => {
+    if (e.target.id === 'manageSetsModal') closeManageSetsModal();
+  });
+  document.getElementById('saveSetBtn').addEventListener('click', saveSet);
+  document.getElementById('cancelSetBtn').addEventListener('click', resetSetForm);
+}
+
+function openManageSetsModal() {
+  resetSetForm();
+  renderSetsList();
+  document.getElementById('manageSetsModal').classList.add('active');
+}
+
+function closeManageSetsModal() {
+  document.getElementById('manageSetsModal').classList.remove('active');
+  editingSetId = null;
+}
+
+// ── Copy-from-Outline modal ───────────────────────────────────────────────
+
+async function openCopyFromSetModal() {
+  const sets = await db.getOutlineSets();
+  const sel = document.getElementById('copySourceSetSelect');
+  sel.innerHTML = '';
+  sets.filter(s => s.id !== currentSetId).forEach(s => {
+    const opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.name;
+    sel.appendChild(opt);
+  });
+  // Reset radios to defaults
+  document.querySelector('input[name="copyScope"][value="all"]').checked = true;
+  document.querySelector('input[name="copyMode"][value="append"]').checked = true;
+  // "Current book" only available when a book is loaded
+  document.querySelector('input[name="copyScope"][value="current"]').disabled = !currentBook;
+  const st = document.getElementById('copyFromSetStatus');
+  st.style.display = 'none';
+  st.textContent = '';
+  document.getElementById('copyFromSetModal').classList.add('active');
+}
+
+function closeCopyFromSetModal() {
+  document.getElementById('copyFromSetModal').classList.remove('active');
+}
+
+async function executeCopyFromSet() {
+  const sourceSetId = parseInt(document.getElementById('copySourceSetSelect').value, 10);
+  const scope = document.querySelector('input[name="copyScope"]:checked').value;
+  const mode  = document.querySelector('input[name="copyMode"]:checked').value;
+
+  // Determine which books are in scope
+  let books;
+  if (scope === 'all') {
+    const all = await db.getAllHeadings(sourceSetId);
+    books = [...new Set(all.map(h => h.book))];
+  } else {
+    books = getBooksToLoad(currentBook); // respects paired groups (1–2 Sam, etc.)
+  }
+
+  // Fetch source headings
+  const sourceHeadings = await db.getHeadingsByBooks(books, sourceSetId);
+  if (sourceHeadings.length === 0) {
+    showCopyStatus(i18n.t('copyNoSource'), 'warning');
+    return;
+  }
+
+  if (mode === 'replace') {
+    // Confirm then delete existing target headings for the scope
+    const targetHeadings = await db.getHeadingsByBooks(books, currentSetId);
+    if (!confirm(i18n.t('confirmCopyReplace', targetHeadings.length))) return;
+    await Promise.all(targetHeadings.map(h => db.deleteHeading(h.id)));
+    // Add source headings with [text] wrapping
+    for (const h of sourceHeadings) {
+      const { id, setId, sortKey, createdAt, position, ...rest } = h;
+      await db.addHeading({ ...rest, text: `[${rest.text}]`, setId: currentSetId });
+    }
+  } else {
+    // Append mode: for each source heading, find a matching target heading by
+    // book + reference + level. If found, append [sourceText] to the existing
+    // text. If not found, add a new heading with [text] wrapping.
+    const targetHeadings = await db.getHeadingsByBooks(books, currentSetId);
+    const targetMap = new Map(
+      targetHeadings.map(h => [`${h.book}|${h.reference}|${h.level}`, h])
+    );
+    for (const h of sourceHeadings) {
+      const key = `${h.book}|${h.reference}|${h.level}`;
+      const match = targetMap.get(key);
+      if (match) {
+        await db.updateHeading(match.id, { text: `${match.text} [${h.text}]` });
+      } else {
+        const { id, setId, sortKey, createdAt, position, ...rest } = h;
+        await db.addHeading({ ...rest, text: `[${rest.text}]`, setId: currentSetId });
+      }
+    }
+  }
+
+  showCopyStatus(i18n.t('copySuccess', sourceHeadings.length), 'success');
+  await loadHeadings();
+  setTimeout(closeCopyFromSetModal, 1500);
+}
+
+function showCopyStatus(msg, type) {
+  const el = document.getElementById('copyFromSetStatus');
+  el.textContent = msg;
+  el.className = 'import-status ' + (type === 'success' ? 'success' : 'warning');
+  el.style.display = 'block';
+}
+
+async function renderSetsList() {
+  const sets = await db.getOutlineSets();
+  const container = document.getElementById('setsList');
+  container.innerHTML = '';
+  sets.forEach(set => {
+    const row = document.createElement('div');
+    row.className = 'set-item';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'set-item-name';
+    nameSpan.textContent = set.name;
+
+    const langSpan = document.createElement('span');
+    langSpan.className = 'set-item-lang';
+    langSpan.textContent = getLangName(set.lang, savedLang);
+
+    const actions = document.createElement('div');
+    actions.className = 'set-item-actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-small';
+    editBtn.textContent = i18n.t('editSetInline');
+    editBtn.addEventListener('click', () => startEditSet(set));
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-small';
+    delBtn.textContent = i18n.t('deleteSet');
+    delBtn.style.color = '#d32f2f';
+    if (sets.length <= 1) delBtn.disabled = true;
+    delBtn.addEventListener('click', () => confirmDeleteSet(set.id, set.name));
+
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(nameSpan);
+    row.appendChild(langSpan);
+    row.appendChild(actions);
+    container.appendChild(row);
+  });
+}
+
+function startEditSet(set) {
+  editingSetId = set.id;
+  const titleEl = document.getElementById('setFormTitle');
+  titleEl.textContent = set.name;
+  titleEl.removeAttribute('data-i18n');
+  document.getElementById('setNameInput').value = set.name;
+  document.getElementById('setLangSelect').value = set.lang;
+  const saveBtn = document.getElementById('saveSetBtn');
+  saveBtn.textContent = i18n.t('saveEditSet');
+  saveBtn.removeAttribute('data-i18n');
+  document.getElementById('setNameInput').focus();
+}
+
+function resetSetForm() {
+  editingSetId = null;
+  document.getElementById('setNameInput').value = '';
+  document.getElementById('setLangSelect').value = 'en';
+  const saveBtn = document.getElementById('saveSetBtn');
+  saveBtn.textContent = i18n.t('saveNewSet');
+  saveBtn.removeAttribute('data-i18n');
+  const titleEl = document.getElementById('setFormTitle');
+  titleEl.textContent = i18n.t('addSet');
+  titleEl.removeAttribute('data-i18n');
+}
+
+async function saveSet() {
+  const name = document.getElementById('setNameInput').value.trim();
+  const lang = document.getElementById('setLangSelect').value;
+  if (!name) {
+    document.getElementById('setNameInput').focus();
+    return;
+  }
+  if (editingSetId != null) {
+    await db.updateOutlineSet(editingSetId, { name, lang });
+  } else {
+    await db.addOutlineSet({ name, lang });
+  }
+  resetSetForm();
+  await refreshSetSelector();
+  await renderSetsList();
+  // Reload headings if the active set's name changed (no data change, but harmless)
+  if (editingSetId === currentSetId) await loadHeadings();
+}
+
+async function confirmDeleteSet(setId, setName) {
+  const count = await db.getHeadingCountForSet(setId);
+  if (!confirm(i18n.t('confirmDeleteSet', setName, count))) return;
+  await db.deleteOutlineSet(setId);
+  // Switch active set if we just deleted it
+  if (setId === currentSetId) {
+    const sets = await db.getOutlineSets();
+    currentSetId = sets[0]?.id ?? null;
+    if (currentSetId != null) await db.setSetting('activeSetId', currentSetId);
+  }
+  await refreshSetSelector();
+  if (currentSetId != null) document.getElementById('activeSetSelect').value = currentSetId;
+  await renderSetsList();
+  await loadHeadings();
+}
+
 // Initialize
 async function init() {
   await db.init();
 
   // Load i18n strings, then localize the static DOM
-  const savedLang = (await db.getSetting('language')) || 'en';
+  savedLang = (await db.getSetting('language')) || 'en';
   await i18n.load(savedLang);
   i18n.localizeDOM();
   i18n.localizeBookSelects();
@@ -165,6 +471,7 @@ async function init() {
 
   await initColorScheme();       // apply saved theme before rendering
   await initHeadingPalette();    // apply saved heading palette before rendering
+  await initSets();              // load outline sets, set currentSetId
   setupEventListeners();
   await loadCurrentBook();
 
@@ -259,7 +566,13 @@ function setupEventListeners() {
     document.getElementById('importFileInput').click();
   });
   document.getElementById('importFileInput').addEventListener('change', handleImportFile);
-  
+
+  // Copy from outline
+  document.getElementById('copyFromSetBtn').addEventListener('click', openCopyFromSetModal);
+  document.getElementById('closeCopyFromSetModal').addEventListener('click', closeCopyFromSetModal);
+  document.getElementById('cancelCopyFromSetBtn').addEventListener('click', closeCopyFromSetModal);
+  document.getElementById('doCopyFromSetBtn').addEventListener('click', executeCopyFromSet);
+
   // Current book dropdown
   document.getElementById('currentBookSelect').addEventListener('change', async (e) => {
     currentBook = e.target.value || null;
@@ -296,6 +609,9 @@ function setupEventListeners() {
   document.getElementById('importModal').addEventListener('click', (e) => {
     if (e.target.id === 'importModal') closeImportModal();
   });
+  document.getElementById('copyFromSetModal').addEventListener('click', (e) => {
+    if (e.target.id === 'copyFromSetModal') closeCopyFromSetModal();
+  });
 }
 
 // Handle messages from other parts of the extension
@@ -330,7 +646,7 @@ async function loadHeadings() {
 
   try {
     const books = getBooksToLoad(currentBook);
-    currentHeadings = await db.getHeadingsByBooks(books);
+    currentHeadings = await db.getHeadingsByBooks(books, currentSetId);
     applyPositionSort(currentHeadings);
     const fallbackEndRef = db.getLastVerseRef(books[books.length - 1]);
     const headingsWithRanges = db.calculateVerseRanges(currentHeadings, fallbackEndRef);
@@ -690,7 +1006,8 @@ async function saveHeading() {
         reference,
         level: selectedHeadingLevel,
         text,
-        notes
+        notes,
+        setId: currentSetId
       });
       console.log('Heading added successfully with id:', id);
     }
@@ -751,9 +1068,9 @@ async function exportOutline(format) {
     const scope = document.querySelector('input[name="exportScope"]:checked')?.value ?? 'all';
     let rawHeadings;
     if (scope === 'current' && currentBook) {
-      rawHeadings = await db.getHeadingsByBooks(getBooksToLoad(currentBook));
+      rawHeadings = await db.getHeadingsByBooks(getBooksToLoad(currentBook), currentSetId);
     } else {
-      rawHeadings = await db.getAllHeadings();
+      rawHeadings = await db.getAllHeadings(currentSetId);
     }
 
     // Determine the last verse of the scope so unclosed ranges extend correctly
@@ -872,9 +1189,9 @@ async function copyToClipboard() {
     const scope = document.querySelector('input[name="exportScope"]:checked')?.value ?? 'all';
     let rawHeadings;
     if (scope === 'current' && currentBook) {
-      rawHeadings = await db.getHeadingsByBooks(getBooksToLoad(currentBook));
+      rawHeadings = await db.getHeadingsByBooks(getBooksToLoad(currentBook), currentSetId);
     } else {
-      rawHeadings = await db.getAllHeadings();
+      rawHeadings = await db.getAllHeadings(currentSetId);
     }
 
     let fallbackEndRef = null;
@@ -1461,15 +1778,22 @@ async function handleImportFile(event) {
   try {
     const text = await file.text();
     const data = JSON.parse(text);
-    
-    if (!Array.isArray(data)) {
+
+    // Support three formats:
+    //  1. Wrapped backup: { version, sets, headings: [{book, headings:[...]}] }
+    //  2. Grouped export: [{book, headings:[...]}]
+    //  3. Flat export:    [{text, level, ...}]
+    const groupedOrFlat = (!Array.isArray(data) && Array.isArray(data.headings))
+      ? data.headings
+      : data;
+
+    if (!Array.isArray(groupedOrFlat)) {
       throw new Error(i18n.t('invalidJson'));
     }
 
-    // Support both flat [{text,level,...}] and grouped [{book,headings:[...]}] formats
-    const flatHeadings = (data.length > 0 && Array.isArray(data[0].headings))
-      ? data.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
-      : data;
+    const flatHeadings = (groupedOrFlat.length > 0 && Array.isArray(groupedOrFlat[0].headings))
+      ? groupedOrFlat.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
+      : groupedOrFlat;
 
     statusDiv.textContent = i18n.t('importProgress', flatHeadings.length);
 
@@ -1491,7 +1815,8 @@ async function handleImportFile(event) {
           reference: item.reference,
           level: item.level,
           text: item.text,
-          notes: item.notes || ''
+          notes: item.notes || '',
+          setId: currentSetId
         });
         imported++;
       } catch (err) {

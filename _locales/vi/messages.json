@@ -517,5 +517,80 @@
   },
   "exportGeneratedOn": {
     "message": "Tạo ngày $1"
+  },
+  "activeSet": {
+    "message": "Bố cục:"
+  },
+  "manageSets": {
+    "message": "Quản lý bố cục"
+  },
+  "addSet": {
+    "message": "Bố cục mới"
+  },
+  "editSetInline": {
+    "message": "Sửa"
+  },
+  "deleteSet": {
+    "message": "Xóa"
+  },
+  "setNameLabel": {
+    "message": "Tên:"
+  },
+  "setNamePlaceholder": {
+    "message": "Tên bố cục"
+  },
+  "setLanguageLabel": {
+    "message": "Ngôn ngữ:"
+  },
+  "saveNewSet": {
+    "message": "Thêm"
+  },
+  "saveEditSet": {
+    "message": "Lưu"
+  },
+  "cancelSet": {
+    "message": "Hủy"
+  },
+  "confirmDeleteSet": {
+    "message": "Xóa '$1' và $2 tiêu đề? Không thể hoàn tác."
+  },
+  "defaultSetName": {
+    "message": "Mặc định"
+  },
+  "copyFromSet": {
+    "message": "Sao chép từ bố cục"
+  },
+  "copySourceLabel": {
+    "message": "Nguồn:"
+  },
+  "copyScopeLabel": {
+    "message": "Phạm vi:"
+  },
+  "copyAllBooks": {
+    "message": "Toàn bộ bố cục"
+  },
+  "copyCurrentBook": {
+    "message": "Sách hiện tại"
+  },
+  "copyModeLabel": {
+    "message": "Chế độ:"
+  },
+  "copyModeAppend": {
+    "message": "Thêm vào"
+  },
+  "copyModeReplace": {
+    "message": "Thay thế"
+  },
+  "copyBtn": {
+    "message": "Sao chép"
+  },
+  "confirmCopyReplace": {
+    "message": "Thao tác này sẽ thay thế $1 tiêu đề trong phạm vi đã chọn. Tiêu đề nhập sẽ được đặt trong [ngoặc vuông]. Tiếp tục?"
+  },
+  "copySuccess": {
+    "message": "Đã sao chép $1 tiêu đề."
+  },
+  "copyNoSource": {
+    "message": "Không tìm thấy tiêu đề trong phạm vi đã chọn."
   }
 }

@@ -48,11 +48,17 @@ function hashString(str) {
 
 /**
  * Build the full JSON content for a backup.
- * Uses the same pipeline as the regular JSON export.
+ * Produces a wrapped object { version, sets, headings } so that outline-set
+ * metadata is preserved alongside every heading's setId field.
+ * The regular export (used for import) remains a plain array for
+ * backwards-compatibility; the import handler accepts both formats.
  * @returns {Promise<string>} JSON string
  */
 async function buildBackupContent() {
-  const rawHeadings = await db.getAllHeadings();
+  const [rawHeadings, sets] = await Promise.all([
+    db.getAllHeadings(),       // all headings (no setId filter) — includes setId fields
+    db.getOutlineSets()        // all outline-set records
+  ]);
 
   let fallbackEndRef = null;
   if (rawHeadings.length > 0) {
@@ -61,7 +67,10 @@ async function buildBackupContent() {
   }
 
   const headingsWithRanges = db.calculateVerseRanges(rawHeadings, fallbackEndRef);
-  return generateJSONExport(headingsWithRanges);
+  // Parse the grouped-array JSON produced by generateJSONExport so we can
+  // embed it under a `headings` key alongside the sets metadata.
+  const headingsData = JSON.parse(generateJSONExport(headingsWithRanges));
+  return JSON.stringify({ version: 2, sets, headings: headingsData }, null, 2);
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────

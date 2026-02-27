@@ -111,52 +111,91 @@ function getPreviousVerse(reference) {
 class BibleOutlineDB {
   constructor() {
     this.dbName = 'BibleOutlineDB';
-    this.version = 2;
+    this.version = 3;
     this.db = null;
   }
 
   async init() {
     console.log('Initializing database...');
-    return new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version);
 
       request.onerror = () => {
         console.error('Database open error:', request.error);
         reject(request.error);
       };
-      
+
       request.onsuccess = () => {
         this.db = request.result;
-        console.log('Database opened successfully:', this.db);
+        console.log('Database opened successfully');
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
         console.log('Database upgrade needed, version:', event.oldVersion, '->', event.newVersion);
         const db = event.target.result;
+        const tx = event.target.transaction;
 
-        // Create headings object store
+        // v1: create headings store
         if (!db.objectStoreNames.contains('headings')) {
-          console.log('Creating headings object store...');
-          const store = db.createObjectStore('headings', { 
-            keyPath: 'id', 
-            autoIncrement: true 
+          const store = db.createObjectStore('headings', {
+            keyPath: 'id',
+            autoIncrement: true
           });
-          
-          // Create indexes for efficient querying
-          store.createIndex('book', 'book', { unique: false });
+          store.createIndex('book',      'book',      { unique: false });
           store.createIndex('reference', 'reference', { unique: false });
-          store.createIndex('level', 'level', { unique: false });
-          store.createIndex('sortKey', 'sortKey', { unique: false });
-          console.log('Object store created with indexes');
+          store.createIndex('level',     'level',     { unique: false });
+          store.createIndex('sortKey',   'sortKey',   { unique: false });
         }
 
-        // Create settings object store (v2+)
+        // v2: settings store
         if (!db.objectStoreNames.contains('settings')) {
           db.createObjectStore('settings', { keyPath: 'key' });
-          console.log('Settings object store created');
+        }
+
+        // v3: outline sets store + setId index on headings
+        if (!db.objectStoreNames.contains('outlineSets')) {
+          db.createObjectStore('outlineSets', {
+            keyPath: 'id',
+            autoIncrement: true
+          });
+        }
+        const headingsStore = tx.objectStore('headings');
+        if (!headingsStore.indexNames.contains('setId')) {
+          headingsStore.createIndex('setId', 'setId', { unique: false });
         }
       };
+    });
+
+    // Data migration: create default set and assign any orphan headings
+    await this._migrateOutlineSets();
+  }
+
+  // ── Migration ──────────────────────────────────────────────────────────────
+
+  async _migrateOutlineSets() {
+    const sets = await this.getOutlineSets();
+    if (sets.length === 0) {
+      const defaultId = await this.addOutlineSet({ name: 'Default', lang: 'en' });
+      await this._assignOrphanHeadings(defaultId);
+    }
+  }
+
+  async _assignOrphanHeadings(setId) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['headings'], 'readwrite');
+      const store = tx.objectStore('headings');
+      const req   = store.openCursor();
+      req.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor) { resolve(); return; }
+        if (cursor.value.setId === undefined || cursor.value.setId === null) {
+          cursor.update({ ...cursor.value, setId });
+        }
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+      tx.onerror  = () => reject(tx.error);
     });
   }
 
@@ -230,7 +269,85 @@ class BibleOutlineDB {
     });
   }
 
-  // Get all headings for a book
+  // ── Outline Sets CRUD ──────────────────────────────────────────────────────
+
+  async getOutlineSets() {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['outlineSets'], 'readonly');
+      const store = tx.objectStore('outlineSets');
+      const req   = store.getAll();
+      req.onsuccess = () => {
+        const sets = req.result;
+        sets.sort((a, b) => a.name.localeCompare(b.name));
+        resolve(sets);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async addOutlineSet({ name, lang }) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['outlineSets'], 'readwrite');
+      const store = tx.objectStore('outlineSets');
+      const req   = store.add({ name, lang });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error);
+    });
+  }
+
+  async updateOutlineSet(id, updates) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['outlineSets'], 'readwrite');
+      const store = tx.objectStore('outlineSets');
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const updated = { ...getReq.result, ...updates };
+        const putReq  = store.put(updated);
+        putReq.onsuccess = () => resolve(updated);
+        putReq.onerror   = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+  }
+
+  // Delete a set and ALL its headings atomically
+  async deleteOutlineSet(id) {
+    return new Promise((resolve, reject) => {
+      const tx          = this.db.transaction(['headings', 'outlineSets'], 'readwrite');
+      const headSt      = tx.objectStore('headings');
+      const setsSt      = tx.objectStore('outlineSets');
+      const setIdIndex  = headSt.index('setId');
+
+      // Cursor over all headings belonging to this set and delete them
+      const cursorReq = setIdIndex.openCursor(IDBKeyRange.only(id));
+      cursorReq.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) { cursor.delete(); cursor.continue(); }
+      };
+
+      tx.oncomplete = () => resolve();
+      tx.onerror    = () => reject(tx.error);
+
+      // Delete the set record itself
+      setsSt.delete(id);
+    });
+  }
+
+  // Count headings belonging to a set
+  async getHeadingCountForSet(setId) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['headings'], 'readonly');
+      const store = tx.objectStore('headings');
+      const index = store.index('setId');
+      const req   = index.count(IDBKeyRange.only(setId));
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error);
+    });
+  }
+
+  // ── Heading queries ────────────────────────────────────────────────────────
+
+  // Get all headings for a book (unfiltered — internal helper)
   async getHeadingsByBook(bookCode) {
     const transaction = this.db.transaction(['headings'], 'readonly');
     const store = transaction.objectStore('headings');
@@ -247,10 +364,11 @@ class BibleOutlineDB {
     });
   }
 
-  // Get headings for multiple books, merged and sorted
-  async getHeadingsByBooks(bookCodes) {
+  // Get headings for multiple books, filtered by setId and sorted
+  async getHeadingsByBooks(bookCodes, setId) {
     const results = await Promise.all(bookCodes.map(code => this.getHeadingsByBook(code)));
-    const merged = results.flat();
+    let merged = results.flat();
+    if (setId != null) merged = merged.filter(h => h.setId === setId);
     merged.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || (a.level - b.level));
     return merged;
   }
@@ -295,15 +413,16 @@ class BibleOutlineDB {
     });
   }
 
-  // Get all headings (for export)
-  async getAllHeadings() {
+  // Get all headings — setId=null returns all (for backup); setId filters by set (for export)
+  async getAllHeadings(setId = null) {
     const transaction = this.db.transaction(['headings'], 'readonly');
     const store = transaction.objectStore('headings');
 
     return new Promise((resolve, reject) => {
       const request = store.getAll();
       request.onsuccess = () => {
-        const headings = request.result;
+        let headings = request.result;
+        if (setId != null) headings = headings.filter(h => h.setId === setId);
         headings.sort((a, b) => a.sortKey.localeCompare(b.sortKey) || (a.level - b.level));
         resolve(headings);
       };

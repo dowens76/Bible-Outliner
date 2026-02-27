@@ -517,5 +517,80 @@
   },
   "exportGeneratedOn": {
     "message": "Erstellt am $1"
+  },
+  "activeSet": {
+    "message": "Gliederung:"
+  },
+  "manageSets": {
+    "message": "Gliederungen verwalten"
+  },
+  "addSet": {
+    "message": "Neue Gliederung"
+  },
+  "editSetInline": {
+    "message": "Bearbeiten"
+  },
+  "deleteSet": {
+    "message": "Löschen"
+  },
+  "setNameLabel": {
+    "message": "Name:"
+  },
+  "setNamePlaceholder": {
+    "message": "Name der Gliederung"
+  },
+  "setLanguageLabel": {
+    "message": "Sprache:"
+  },
+  "saveNewSet": {
+    "message": "Hinzufügen"
+  },
+  "saveEditSet": {
+    "message": "Speichern"
+  },
+  "cancelSet": {
+    "message": "Abbrechen"
+  },
+  "confirmDeleteSet": {
+    "message": "„$1“ und alle $2 Überschrift(en) löschen? Nicht rückgängig machbar."
+  },
+  "defaultSetName": {
+    "message": "Standard"
+  },
+  "copyFromSet": {
+    "message": "Aus Gliederung kopieren"
+  },
+  "copySourceLabel": {
+    "message": "Quelle:"
+  },
+  "copyScopeLabel": {
+    "message": "Bereich:"
+  },
+  "copyAllBooks": {
+    "message": "Gesamte Gliederung"
+  },
+  "copyCurrentBook": {
+    "message": "Aktuelles Buch"
+  },
+  "copyModeLabel": {
+    "message": "Modus:"
+  },
+  "copyModeAppend": {
+    "message": "Anhängen"
+  },
+  "copyModeReplace": {
+    "message": "Ersetzen"
+  },
+  "copyBtn": {
+    "message": "Kopieren"
+  },
+  "confirmCopyReplace": {
+    "message": "Dadurch werden $1 Überschrift(en) für den gewählten Bereich ersetzt. Importierte werden in [Klammern] gesetzt. Fortfahren?"
+  },
+  "copySuccess": {
+    "message": "$1 Überschrift(en) kopiert."
+  },
+  "copyNoSource": {
+    "message": "Keine Überschriften im gewählten Bereich gefunden."
   }
 }

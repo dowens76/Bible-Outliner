@@ -996,3 +996,182 @@ body.reorder-mode .heading-item:hover .heading-actions {
   color: #666;
   white-space: nowrap;
 }
+
+/* ── Outline Sets bar ────────────────────────────────────────────────────── */
+
+.set-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  background: var(--bg-mid);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+#manageSetsBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#manageSetsBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-border);
+}
+
+/* ── Manage Sets Modal ───────────────────────────────────────────────────── */
+
+/* Reuse .modal / .modal.active / .modal-content from existing styles */
+
+.sets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+  min-height: 32px;
+}
+
+.set-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: var(--bg-mid);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.set-item-name {
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.set-item-lang {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.set-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Reuse .btn-small for the edit/delete buttons in set rows */
+
+.set-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: var(--bg-mid);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
+}
+
+.set-form-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+.set-form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.set-form-row label {
+  font-size: 12px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.set-form-row input[type="text"],
+.set-form-row select {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 4px 7px;
+  border: 1px solid var(--accent-border);
+  border-radius: 4px;
+  background: white;
+  color: #333;
+}
+
+.set-form-row input[type="text"]:focus,
+.set-form-row select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.set-form-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ── Copy-from-Outline button (set-bar) ──────────────────────────────────── */
+
+#copyFromSetBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#copyFromSetBtn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-border);
+}
+
+/* ── Radio groups inside modals ──────────────────────────────────────────── */
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  cursor: pointer;
+}

@@ -610,5 +610,105 @@
   "exportGeneratedOn": {
     "message": "Generated on $1",
     "description": "Generated-on line in exported documents"
+  },
+  "activeSet": {
+    "message": "Outline:",
+    "description": "Label before the active outline set selector"
+  },
+  "manageSets": {
+    "message": "Manage Outlines",
+    "description": "Tooltip/title for the manage-sets gear button"
+  },
+  "addSet": {
+    "message": "New Outline",
+    "description": "Label for the add-new-set form / button"
+  },
+  "editSetInline": {
+    "message": "Edit",
+    "description": "Edit button for a set row"
+  },
+  "deleteSet": {
+    "message": "Delete",
+    "description": "Delete button for a set row"
+  },
+  "setNameLabel": {
+    "message": "Name:",
+    "description": "Label for the set name input"
+  },
+  "setNamePlaceholder": {
+    "message": "Outline name",
+    "description": "Placeholder for the set name input"
+  },
+  "setLanguageLabel": {
+    "message": "Language:",
+    "description": "Label for the set language picker"
+  },
+  "saveNewSet": {
+    "message": "Add",
+    "description": "Button to save a new set"
+  },
+  "saveEditSet": {
+    "message": "Save",
+    "description": "Button to save edits to an existing set"
+  },
+  "cancelSet": {
+    "message": "Cancel",
+    "description": "Cancel add/edit set form"
+  },
+  "confirmDeleteSet": {
+    "message": "Delete '$1' and all $2 heading(s)? This cannot be undone.",
+    "description": "Confirm dialog before deleting a set"
+  },
+  "defaultSetName": {
+    "message": "Default",
+    "description": "Name of the auto-created default outline set"
+  },
+  "copyFromSet": {
+    "message": "Copy from Outline",
+    "description": "Title of the copy-from-outline modal"
+  },
+  "copySourceLabel": {
+    "message": "Source:",
+    "description": "Label for the source outline selector"
+  },
+  "copyScopeLabel": {
+    "message": "Scope:",
+    "description": "Label for the scope selector"
+  },
+  "copyAllBooks": {
+    "message": "Entire outline",
+    "description": "Scope option: copy all books from source"
+  },
+  "copyCurrentBook": {
+    "message": "Current book",
+    "description": "Scope option: copy only the currently viewed book"
+  },
+  "copyModeLabel": {
+    "message": "Mode:",
+    "description": "Label for the merge mode selector"
+  },
+  "copyModeAppend": {
+    "message": "Append",
+    "description": "Mode: add imported headings alongside existing ones"
+  },
+  "copyModeReplace": {
+    "message": "Replace",
+    "description": "Mode: replace existing headings with imported ones"
+  },
+  "copyBtn": {
+    "message": "Copy",
+    "description": "Button to execute the copy-from-outline action"
+  },
+  "confirmCopyReplace": {
+    "message": "This will replace $1 existing heading(s) for the selected scope. Imported headings will be wrapped in [brackets]. Continue?",
+    "description": "Confirmation dialog before replacing headings; $1 = count"
+  },
+  "copySuccess": {
+    "message": "Copied $1 heading(s).",
+    "description": "Success message after copying headings; $1 = count"
+  },
+  "copyNoSource": {
+    "message": "No headings found in source outline for the selected scope.",
+    "description": "Warning when the source has no headings for the chosen scope"
   }
 }

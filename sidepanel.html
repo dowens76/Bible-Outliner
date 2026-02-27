@@ -54,6 +54,14 @@
       </div>
     </header>
 
+    <!-- Outline Set Selector Bar -->
+    <div class="set-bar">
+      <span class="backup-label" data-i18n="activeSet">Outline:</span>
+      <select id="activeSetSelect" class="book-select" style="flex:1; max-width:160px;"></select>
+      <button id="copyFromSetBtn" data-i18n-title="copyFromSet" title="Copy from Outline">&#8659;</button>
+      <button id="manageSetsBtn" data-i18n-title="manageSets" title="Manage Outlines">&#9881;</button>
+    </div>
+
     <!-- Current Book Display -->
     <div class="current-book">
       <label class="book-label" for="currentBookSelect" data-i18n="currentBookLabel">Current Book:</label>
@@ -480,6 +488,77 @@
           </button>
           <div id="importStatus" style="margin-top: 16px; font-size: 13px; display: none; padding: 12px; border-radius: 6px;"></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manage Outline Sets Modal -->
+  <div id="manageSetsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 data-i18n="manageSets">Manage Outlines</h2>
+        <button id="closeManageSetsModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- Existing sets list -->
+        <div id="setsList" class="sets-list"></div>
+        <!-- Add / Edit form -->
+        <div id="setForm" class="set-form">
+          <div class="set-form-title" id="setFormTitle" data-i18n="addSet">New Outline</div>
+          <div class="set-form-row">
+            <label for="setNameInput" data-i18n="setNameLabel">Name:</label>
+            <input type="text" id="setNameInput"
+                   data-i18n-placeholder="setNamePlaceholder"
+                   placeholder="Outline name">
+          </div>
+          <div class="set-form-row">
+            <label for="setLangSelect" data-i18n="setLanguageLabel">Language:</label>
+            <select id="setLangSelect"></select>
+          </div>
+          <div class="set-form-actions">
+            <button id="cancelSetBtn" class="btn-small" data-i18n="cancelSet">Cancel</button>
+            <button id="saveSetBtn" class="btn-small btn-small-primary" data-i18n="saveNewSet">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copy from Outline Modal -->
+  <div id="copyFromSetModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 data-i18n="copyFromSet">Copy from Outline</h2>
+        <button id="closeCopyFromSetModal" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="set-form-row">
+          <label for="copySourceSetSelect" data-i18n="copySourceLabel">Source:</label>
+          <select id="copySourceSetSelect" class="book-select" style="flex:1;"></select>
+        </div>
+        <div class="set-form-row">
+          <label data-i18n="copyScopeLabel">Scope:</label>
+          <div class="radio-group">
+            <label><input type="radio" name="copyScope" value="all" checked>
+              <span data-i18n="copyAllBooks">Entire outline</span></label>
+            <label><input type="radio" name="copyScope" value="current">
+              <span data-i18n="copyCurrentBook">Current book</span></label>
+          </div>
+        </div>
+        <div class="set-form-row">
+          <label data-i18n="copyModeLabel">Mode:</label>
+          <div class="radio-group">
+            <label><input type="radio" name="copyMode" value="append" checked>
+              <span data-i18n="copyModeAppend">Append</span></label>
+            <label><input type="radio" name="copyMode" value="replace">
+              <span data-i18n="copyModeReplace">Replace</span></label>
+          </div>
+        </div>
+        <div class="set-form-actions">
+          <button id="cancelCopyFromSetBtn" class="btn-small" data-i18n="cancelSet">Cancel</button>
+          <button id="doCopyFromSetBtn" class="btn-small btn-small-primary" data-i18n="copyBtn">Copy</button>
+        </div>
+        <div id="copyFromSetStatus" class="import-status" style="display:none;"></div>
       </div>
     </div>
   </div>

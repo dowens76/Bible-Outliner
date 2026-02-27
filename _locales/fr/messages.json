@@ -517,5 +517,80 @@
   },
   "exportGeneratedOn": {
     "message": "Généré le $1"
+  },
+  "activeSet": {
+    "message": "Plan :"
+  },
+  "manageSets": {
+    "message": "Gérer les plans"
+  },
+  "addSet": {
+    "message": "Nouveau plan"
+  },
+  "editSetInline": {
+    "message": "Modifier"
+  },
+  "deleteSet": {
+    "message": "Supprimer"
+  },
+  "setNameLabel": {
+    "message": "Nom :"
+  },
+  "setNamePlaceholder": {
+    "message": "Nom du plan"
+  },
+  "setLanguageLabel": {
+    "message": "Langue :"
+  },
+  "saveNewSet": {
+    "message": "Ajouter"
+  },
+  "saveEditSet": {
+    "message": "Enregistrer"
+  },
+  "cancelSet": {
+    "message": "Annuler"
+  },
+  "confirmDeleteSet": {
+    "message": "Supprimer « $1 » et ses $2 titre(s) ? Irréversible."
+  },
+  "defaultSetName": {
+    "message": "Par défaut"
+  },
+  "copyFromSet": {
+    "message": "Copier d'un plan"
+  },
+  "copySourceLabel": {
+    "message": "Source :"
+  },
+  "copyScopeLabel": {
+    "message": "Portée :"
+  },
+  "copyAllBooks": {
+    "message": "Plan entier"
+  },
+  "copyCurrentBook": {
+    "message": "Livre actuel"
+  },
+  "copyModeLabel": {
+    "message": "Mode :"
+  },
+  "copyModeAppend": {
+    "message": "Ajouter"
+  },
+  "copyModeReplace": {
+    "message": "Remplacer"
+  },
+  "copyBtn": {
+    "message": "Copier"
+  },
+  "confirmCopyReplace": {
+    "message": "Cela remplacera $1 titre(s) pour la portée sélectionnée. Les importés seront entre [crochets]. Continuer ?"
+  },
+  "copySuccess": {
+    "message": "$1 titre(s) copié(s)."
+  },
+  "copyNoSource": {
+    "message": "Aucun titre trouvé pour la portée sélectionnée."
   }
 }
