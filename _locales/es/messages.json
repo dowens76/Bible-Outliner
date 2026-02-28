@@ -601,5 +601,20 @@
   },
   "tagRequiredAlert": {
     "message": "Ingrese una etiqueta para el elemento fuera del esquema."
-  }
+  },
+  "outlineFormat": { "message": "Formato de esquema:" },
+  "formatTraditional": { "message": "Tradicional" },
+  "formatThematic": { "message": "Temático" },
+  "formatPlot": { "message": "Trama" },
+  "themeKeyLabel": { "message": "Tema" },
+  "themeKeyPlaceholder": { "message": "Ingrese o seleccione un tema" },
+  "themeKeyRequiredAlert": { "message": "Ingrese un identificador de tema." },
+  "plotElementLabel": { "message": "Elemento de trama" },
+  "plotElementNone": { "message": "— Seleccione —" },
+  "plotInitialSituation": { "message": "Situación inicial" },
+  "plotConflict": { "message": "Conflicto" },
+  "plotTransformingAction": { "message": "Acción transformadora" },
+  "plotResolution": { "message": "Resolución" },
+  "plotFinalSituation": { "message": "Situación final" },
+  "plotElementRequiredAlert": { "message": "Seleccione un elemento de trama." }
 }

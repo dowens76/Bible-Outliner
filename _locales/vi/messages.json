@@ -601,5 +601,20 @@
   },
   "tagRequiredAlert": {
     "message": "Vui lòng nhập nhãn cho mục ngoài dàn bài."
-  }
+  },
+  "outlineFormat": { "message": "Định dạng dàn bài:" },
+  "formatTraditional": { "message": "Truyền thống" },
+  "formatThematic": { "message": "Chủ đề" },
+  "formatPlot": { "message": "Cốt truyện" },
+  "themeKeyLabel": { "message": "Chủ đề" },
+  "themeKeyPlaceholder": { "message": "Nhập hoặc chọn chủ đề" },
+  "themeKeyRequiredAlert": { "message": "Vui lòng nhập chủ đề." },
+  "plotElementLabel": { "message": "Yếu tố cốt truyện" },
+  "plotElementNone": { "message": "— Chọn —" },
+  "plotInitialSituation": { "message": "Tình huống ban đầu" },
+  "plotConflict": { "message": "Xung đột" },
+  "plotTransformingAction": { "message": "Hành động chuyển hóa" },
+  "plotResolution": { "message": "Giải quyết" },
+  "plotFinalSituation": { "message": "Tình huống cuối" },
+  "plotElementRequiredAlert": { "message": "Vui lòng chọn yếu tố cốt truyện." }
 }

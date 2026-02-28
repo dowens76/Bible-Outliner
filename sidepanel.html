@@ -180,6 +180,15 @@
         </svg>
       </button>
       <div id="settingsPanel" class="settings-panel" style="display:none;">
+        <!-- Outline format -->
+        <div class="theme-section">
+          <span class="backup-label" data-i18n="outlineFormat">Outline format:</span>
+          <div class="theme-options">
+            <button class="format-btn active" data-format="traditional" data-i18n="formatTraditional">Traditional</button>
+            <button class="format-btn" data-format="thematic" data-i18n="formatThematic">Thematic</button>
+            <button class="format-btn" data-format="plot" data-i18n="formatPlot">Plot</button>
+          </div>
+        </div>
         <!-- Language selector -->
         <div class="theme-section">
           <span class="backup-label" data-i18n="settingsLanguage">Language:</span>
@@ -347,8 +356,8 @@
           </label>
         </div>
 
-        <!-- Heading Level -->
-        <div class="form-group">
+        <!-- Heading Level (traditional format only) -->
+        <div id="levelBtnsGroup" class="form-group">
           <label data-i18n="headingLevel">Heading Level</label>
           <div class="level-buttons">
             <button class="level-btn active" data-level="1">H1</button>
@@ -358,6 +367,29 @@
             <button class="level-btn" data-level="5">H5</button>
             <button class="level-btn" data-level="6">H6</button>
           </div>
+        </div>
+
+        <!-- Thematic format: theme identifier -->
+        <div id="themeKeyGroup" class="form-group" style="display:none;">
+          <label data-i18n="themeKeyLabel">Theme</label>
+          <input type="text" id="themeKeyInput" class="form-control"
+                 list="themeKeySuggestions"
+                 data-i18n-placeholder="themeKeyPlaceholder"
+                 placeholder="Enter or select a theme">
+          <datalist id="themeKeySuggestions"></datalist>
+        </div>
+
+        <!-- Plot analysis format: plot element -->
+        <div id="plotElementGroup" class="form-group" style="display:none;">
+          <label data-i18n="plotElementLabel">Plot element</label>
+          <select id="plotElementSelect" class="form-control">
+            <option value=""   data-i18n="plotElementNone">&#8212; Select element &#8212;</option>
+            <option value="IS" data-i18n="plotInitialSituation">Initial Situation</option>
+            <option value="C"  data-i18n="plotConflict">Conflict</option>
+            <option value="TA" data-i18n="plotTransformingAction">Transforming Action</option>
+            <option value="R"  data-i18n="plotResolution">Resolution</option>
+            <option value="FS" data-i18n="plotFinalSituation">Final Situation</option>
+          </select>
         </div>
 
         <!-- Heading Text -->

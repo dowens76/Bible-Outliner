@@ -923,7 +923,8 @@ body.reorder-mode .heading-item:hover .heading-actions {
   gap: 4px;
 }
 
-.theme-btn {
+.theme-btn,
+.format-btn {
   padding: 3px 10px;
   border: 1px solid var(--accent-border);
   border-radius: 12px;
@@ -934,12 +935,14 @@ body.reorder-mode .heading-item:hover .heading-actions {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
-.theme-btn:hover {
+.theme-btn:hover,
+.format-btn:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
 
-.theme-btn.active {
+.theme-btn.active,
+.format-btn.active {
   background: var(--accent);
   color: white;
   border-color: var(--accent);
@@ -1201,4 +1204,25 @@ body.reorder-mode .heading-item:hover .heading-actions {
   margin-right: 3px;
   vertical-align: middle;
   letter-spacing: 0.02em;
+}
+
+/* ── Plot-analysis element badge ─────────────────────────────────────────── */
+.plot-label {
+  display: inline-block;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  color: var(--accent);
+  background: var(--bg-mid);
+  border: 1px solid var(--accent-border);
+  border-radius: 3px;
+  padding: 0 5px;
+  margin-right: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+  max-width: 160px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

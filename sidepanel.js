@@ -71,6 +71,22 @@ let isReorderMode = false;
 let currentSetId = null;
 let editingSetId = null;   // null = add-mode in manage-sets form; int = edit-mode
 let savedLang = 'en';      // UI language code, set during init()
+let currentOutlineFormat = 'traditional'; // 'traditional' | 'thematic' | 'plot'
+
+// Unicode subscript numerals for thematic format (A₁, A₂, …)
+const SUBSCRIPT_DIGITS = ['₀','₁','₂','₃','₄','₅','₆','₇','₈','₉'];
+function toSubscriptNum(n) {
+  return String(n).split('').map(d => SUBSCRIPT_DIGITS[+d] ?? d).join('');
+}
+
+// Map plot element codes to i18n keys
+const PLOT_LABEL_KEYS = {
+  IS: 'plotInitialSituation',
+  C:  'plotConflict',
+  TA: 'plotTransformingAction',
+  R:  'plotResolution',
+  FS: 'plotFinalSituation',
+};
 
 // ── Color scheme ─────────────────────────────────────────────────────────────
 
@@ -144,6 +160,27 @@ async function initHeadingPalette() {
   // Apply saved palette (or default)
   const saved = (await db.getSetting('headingPalette')) || 'default';
   applyHeadingPalette(saved);
+}
+
+// ── Outline Format ────────────────────────────────────────────────────────────
+
+function applyOutlineFormat(fmt) {
+  currentOutlineFormat = fmt;
+  document.querySelectorAll('.format-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.format === fmt);
+  });
+}
+
+async function initOutlineFormat() {
+  const saved = (await db.getSetting('outlineFormat')) || 'traditional';
+  applyOutlineFormat(saved);
+  document.querySelectorAll('.format-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      applyOutlineFormat(btn.dataset.format);
+      await db.setSetting('outlineFormat', btn.dataset.format);
+      await loadHeadings();
+    });
+  });
 }
 
 // ── Outline Sets ──────────────────────────────────────────────────────────────
@@ -471,6 +508,7 @@ async function init() {
 
   await initColorScheme();       // apply saved theme before rendering
   await initHeadingPalette();    // apply saved heading palette before rendering
+  await initOutlineFormat();     // apply saved outline format before rendering
   await initSets();              // load outline sets, set currentSetId
   setupEventListeners();
   await loadCurrentBook();
@@ -687,7 +725,8 @@ function renderHeadings(headings) {
 // Create heading element
 function createHeadingElement(heading) {
   const div = document.createElement('div');
-  div.className = `heading-item level-${heading.level}${heading.tag ? ' tagged' : ''}`;
+  const displayLevel = heading.displayLevel ?? heading.level;
+  div.className = `heading-item level-${displayLevel}${heading.tag ? ' tagged' : ''}`;
   div.dataset.id = heading.id;
   div.dataset.reference = heading.reference;
 
@@ -703,7 +742,9 @@ function createHeadingElement(heading) {
 
   const prefixHtml = heading.tag
     ? `<span class="tag-label">${heading.tag}</span>`
-    : `<span class="outline-num">${heading.prefix || ''}</span>`;
+    : (currentOutlineFormat === 'plot' && heading.prefix
+        ? `<span class="plot-label">${heading.prefix}</span>`
+        : `<span class="outline-num">${heading.prefix || ''}</span>`);
   const bodyText = heading.tag ? `[${heading.text}]` : heading.text;
 
   div.innerHTML = `
@@ -896,6 +937,23 @@ function highlightHeadingByReference(reference) {
   }
 }
 
+// Show/hide modal fields appropriate to the current outline format.
+// Called each time the heading modal is opened.
+function updateModalForFormat() {
+  const isTrad = currentOutlineFormat === 'traditional';
+  const isThm  = currentOutlineFormat === 'thematic';
+  const isPlt  = currentOutlineFormat === 'plot';
+  document.getElementById('levelBtnsGroup').style.display    = isTrad ? ''     : 'none';
+  document.getElementById('themeKeyGroup').style.display     = isThm  ? 'block' : 'none';
+  document.getElementById('plotElementGroup').style.display  = isPlt  ? 'block' : 'none';
+  if (isThm) {
+    // Populate datalist with existing themeKeys from current headings
+    const keys = [...new Set(currentHeadings.filter(h => h.themeKey).map(h => h.themeKey))];
+    document.getElementById('themeKeySuggestions').innerHTML =
+      keys.map(k => `<option value="${k.replace(/"/g, '&quot;')}">`).join('');
+  }
+}
+
 // Open add heading modal
 function openAddHeadingModal() {
   editingHeadingId = null;
@@ -913,12 +971,15 @@ function openAddHeadingModal() {
   document.getElementById('tagCheck').checked = false;
   document.getElementById('tagInput').value = '';
   document.getElementById('tagInputRow').style.display = 'none';
+  document.getElementById('themeKeyInput').value = '';
+  document.getElementById('plotElementSelect').value = '';
 
   // Reset level selection
   document.querySelectorAll('.level-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.level === '1');
   });
   selectedHeadingLevel = 1;
+  updateModalForFormat();
 
   document.getElementById('headingModal').classList.add('active');
   document.getElementById('headingText').focus();
@@ -940,12 +1001,15 @@ function openAddHeadingModalWithVerse(reference) {
   document.getElementById('tagCheck').checked = false;
   document.getElementById('tagInput').value = '';
   document.getElementById('tagInputRow').style.display = 'none';
+  document.getElementById('themeKeyInput').value = '';
+  document.getElementById('plotElementSelect').value = '';
 
   // Reset level selection
   document.querySelectorAll('.level-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.level === '1');
   });
   selectedHeadingLevel = 1;
+  updateModalForFormat();
 
   document.getElementById('headingModal').classList.add('active');
   document.getElementById('headingText').focus();
@@ -969,12 +1033,15 @@ function openEditHeadingModal(heading) {
   document.getElementById('tagCheck').checked = hasTag;
   document.getElementById('tagInput').value = heading.tag || '';
   document.getElementById('tagInputRow').style.display = hasTag ? 'block' : 'none';
+  document.getElementById('themeKeyInput').value = heading.themeKey || '';
+  document.getElementById('plotElementSelect').value = heading.plotElement || '';
 
-  // Set level
+  // Set level (always kept in case user switches back to traditional format)
   document.querySelectorAll('.level-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.level === heading.level.toString());
   });
   selectedHeadingLevel = heading.level;
+  updateModalForFormat();
 
   document.getElementById('headingModal').classList.add('active');
   document.getElementById('headingText').focus();
@@ -1009,6 +1076,16 @@ async function saveHeading() {
   }
   const tag = tagChecked ? tagValue : '';
 
+  let themeKey = '', plotElement = '';
+  if (currentOutlineFormat === 'thematic') {
+    themeKey = document.getElementById('themeKeyInput').value.trim();
+    if (!themeKey) { alert(i18n.t('themeKeyRequiredAlert')); return; }
+  }
+  if (currentOutlineFormat === 'plot') {
+    plotElement = document.getElementById('plotElementSelect').value;
+    if (!plotElement) { alert(i18n.t('plotElementRequiredAlert')); return; }
+  }
+
   const reference = `${book}.${chapter}.${verse}${midVerse ? 'b' : ''}`;
   console.log('Reference:', reference);
 
@@ -1022,7 +1099,9 @@ async function saveHeading() {
         level: selectedHeadingLevel,
         text,
         notes,
-        tag
+        tag,
+        themeKey,
+        plotElement,
       });
       console.log('Heading updated successfully');
     } else {
@@ -1035,7 +1114,9 @@ async function saveHeading() {
         text,
         notes,
         setId: currentSetId,
-        tag
+        tag,
+        themeKey,
+        plotElement,
       });
       console.log('Heading added successfully with id:', id);
     }
@@ -1183,7 +1264,8 @@ function generateMarkdownExport(headings) {
       if (heading.tag) {
         md += `*${heading.tag} [${heading.text}]* *(${startDisplay}${endDisplay})*\n\n`;
       } else {
-        const hashes = '#'.repeat(heading.level);
+        const lvl = heading.displayLevel ?? heading.level;
+        const hashes = '#'.repeat(lvl);
         md += `${hashes} ${heading.prefix} ${heading.text} *(${startDisplay}${endDisplay})*\n\n`;
       }
     }
@@ -1205,7 +1287,8 @@ function generatePlainTextExport(headings) {
       const startDisplay = db.formatReference(heading.startRef);
       const endDisplay = heading.endRef !== heading.startRef
         ? `\u2013${db.formatReference(heading.endRef)}` : '';
-      const pad = indent[heading.level - 1] || '';
+      const lvl = heading.displayLevel ?? heading.level;
+      const pad = indent[lvl - 1] || '';
       if (heading.tag) {
         text += `${pad}${heading.tag} [${heading.text}] (${startDisplay}${endDisplay})\n`;
       } else {
@@ -1284,11 +1367,12 @@ function generateHTMLExport(headings) {
       const startDisplay = db.formatReference(heading.startRef);
       const endDisplay = heading.endRef !== heading.startRef ?
         `\u2013${db.formatReference(heading.endRef)}` : '';
+      const lvl = heading.displayLevel ?? heading.level;
       if (heading.tag) {
-        const indent = (heading.level - 1) * 20;
+        const indent = (lvl - 1) * 20;
         html += `  <p class="tagged-item" style="margin-left:${indent}px"><em>${heading.tag} [${heading.text}]</em> <span class="reference">(${startDisplay}${endDisplay})</span></p>\n`;
       } else {
-        html += `  <h${heading.level}><span class="num">${heading.prefix}</span> ${heading.text} <span class="reference">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+        html += `  <h${lvl}><span class="num">${heading.prefix}</span> ${heading.text} <span class="reference">(${startDisplay}${endDisplay})</span></h${lvl}>\n`;
       }
     }
   }
@@ -1335,8 +1419,10 @@ function generateJSONExport(headings) {
       level: h.level,
       reference: h.reference,
       book: h.book,
-      ...(h.notes ? { notes: h.notes } : {}),
-      ...(h.tag   ? { tag:   h.tag   } : {}),
+      ...(h.notes       ? { notes:       h.notes       } : {}),
+      ...(h.tag         ? { tag:         h.tag         } : {}),
+      ...(h.themeKey    ? { themeKey:    h.themeKey    } : {}),
+      ...(h.plotElement ? { plotElement: h.plotElement } : {}),
       startRef: h.startRef,
       endRef: h.endRef
     }))
@@ -1368,9 +1454,18 @@ function outlinePrefix(level, n) {
   }
 }
 
-// Returns a copy of groups with a .prefix string added to each heading.
-// Counters reset at the start of each book and when ascending levels.
+// ── Outline numbering ─────────────────────────────────────────────────────────
+
+// Dispatcher: delegates to the active format's numbering function.
 function assignOutlineNumbers(groups) {
+  if (currentOutlineFormat === 'thematic') return assignOutlineNumbersThematic(groups);
+  if (currentOutlineFormat === 'plot')     return assignOutlineNumbersPlot(groups);
+  return assignOutlineNumbersTraditional(groups);
+}
+
+// Traditional format: I. / A. / 1. / a. / (1) / (a)
+// Counters reset at the start of each book and when ascending levels.
+function assignOutlineNumbersTraditional(groups) {
   return groups.map(group => {
     const counters = [0, 0, 0, 0, 0, 0];
     const headings = group.headings.map(h => {
@@ -1382,6 +1477,69 @@ function assignOutlineNumbers(groups) {
     });
     return { ...group, headings };
   });
+}
+
+// Thematic format: A / B / C… with subscripts for recurring themes (A₁, A₂…).
+// Letter rank (order of first appearance) determines visual indentation level.
+function assignOutlineNumbersThematic(groups) {
+  // Pass 1: map each unique themeKey to a letter index (order of first appearance)
+  //         and count total occurrences of each themeKey across all books.
+  const themeOrderMap = new Map();   // themeKey → letterIdx
+  const themeTotalCounts = new Map(); // themeKey → total occurrence count
+  let nextIdx = 0;
+  for (const g of groups) {
+    for (const h of g.headings) {
+      if (h.tag || !h.themeKey) continue;
+      if (!themeOrderMap.has(h.themeKey)) themeOrderMap.set(h.themeKey, nextIdx++);
+      themeTotalCounts.set(h.themeKey, (themeTotalCounts.get(h.themeKey) || 0) + 1);
+    }
+  }
+  // Pass 2: assign prefix and displayLevel to each heading.
+  const runningCount = new Map(); // themeKey → occurrences seen so far
+  return groups.map(group => ({
+    ...group,
+    headings: group.headings.map(h => {
+      if (h.tag) return { ...h, prefix: '' };
+      if (!h.themeKey) return { ...h, prefix: '\u2014', displayLevel: 1 };
+      const letterIdx = themeOrderMap.get(h.themeKey);
+      const letter    = String.fromCharCode(65 + (letterIdx % 26));
+      const total     = themeTotalCounts.get(h.themeKey);
+      const current   = (runningCount.get(h.themeKey) || 0) + 1;
+      runningCount.set(h.themeKey, current);
+      const sub          = total > 1 ? toSubscriptNum(current) : '';
+      const displayLevel = Math.min(letterIdx + 1, 6);
+      return { ...h, prefix: letter + sub, displayLevel };
+    }),
+  }));
+}
+
+// Plot analysis format: Initial Situation / Conflict / Transforming Action /
+//                       Resolution / Final Situation — flat level-1 indentation.
+function assignOutlineNumbersPlot(groups) {
+  // Pass 1: count total occurrences of each plotElement across all books.
+  const plotTotalCounts = new Map();
+  for (const g of groups) {
+    for (const h of g.headings) {
+      if (h.tag || !h.plotElement) continue;
+      plotTotalCounts.set(h.plotElement, (plotTotalCounts.get(h.plotElement) || 0) + 1);
+    }
+  }
+  // Pass 2: assign prefix (element name, optionally with counter).
+  const plotRunning = new Map();
+  return groups.map(group => ({
+    ...group,
+    headings: group.headings.map(h => {
+      if (h.tag) return { ...h, prefix: '' };
+      if (!h.plotElement) return { ...h, prefix: '\u2014', displayLevel: 1 };
+      const labelKey = PLOT_LABEL_KEYS[h.plotElement];
+      const label    = i18n.t(labelKey);
+      const total    = plotTotalCounts.get(h.plotElement) || 1;
+      const current  = (plotRunning.get(h.plotElement) || 0) + 1;
+      plotRunning.set(h.plotElement, current);
+      const prefix = label + (total > 1 ? ` ${current}` : '');
+      return { ...h, prefix, displayLevel: 1 };
+    }),
+  }));
 }
 
 // ── CRC-32 (required by ZIP) ──────────────────────────────────────────────────
@@ -1604,7 +1762,20 @@ ${groups.map((_, i) =>
       <w:t xml:space="preserve">${x(h.tag)} [${x(h.text)}] (${ref})</w:t>
     </w:r>
   </w:p>\n`;
+      } else if (h.displayLevel !== undefined) {
+        // Thematic or plot: use heading style for color/weight but no auto-numbering;
+        // embed the computed prefix text directly in the paragraph.
+        const lvl = h.displayLevel;
+        const indentTwips = (lvl - 1) * 360;
+        paragraphs += `  <w:p>
+    <w:pPr>
+      <w:pStyle w:val="${H[lvl - 1].id}"/>
+      <w:ind w:left="${indentTwips}"/>
+    </w:pPr>
+    <w:r><w:t xml:space="preserve">${x(h.prefix)} ${x(h.text)} (${ref})</w:t></w:r>
+  </w:p>\n`;
       } else {
+        // Traditional: use Word's outline numbering via numPr
         paragraphs += `  <w:p>
     <w:pPr>
       <w:pStyle w:val="${H[h.level - 1].id}"/>
@@ -1713,9 +1884,14 @@ ${ODT_LEVELS.map(l => {
       const ref = h.endRef !== h.startRef
         ? `${db.formatReference(h.startRef)}\u2013${db.formatReference(h.endRef)}`
         : db.formatReference(h.startRef);
-      // text:h + text:outline-level picks up the outline-style numbering automatically
+      // text:h + text:outline-level picks up the outline-style numbering automatically.
+      // For thematic/plot headings (displayLevel set), use text:p to suppress auto-numbering
+      // while still applying the H1–H6 visual style.
       if (h.tag) {
         body += `    <text:p text:style-name="P_TAGGED_L${h.level}">${x(h.tag)} [${x(h.text)}] (${ref})</text:p>\n`;
+      } else if (h.displayLevel !== undefined) {
+        const lvl = h.displayLevel;
+        body += `    <text:p text:style-name="H${lvl}">${x(h.prefix)} ${x(h.text)} (${ref})</text:p>\n`;
       } else {
         body += `    <text:h text:outline-level="${h.level}" text:style-name="H${h.level}">${x(h.text)} (${ref})</text:h>\n`;
       }
@@ -1759,7 +1935,8 @@ async function exportAsPDF(headings) {
       const startDisplay = db.formatReference(heading.startRef);
       const endDisplay = heading.endRef !== heading.startRef ?
         `\u2013${db.formatReference(heading.endRef)}` : '';
-      body += `<h${heading.level}><span class="num">${escapeXML(heading.prefix)}</span> ${escapeXML(heading.text)} <span class="ref">(${startDisplay}${endDisplay})</span></h${heading.level}>\n`;
+      const lvl = heading.displayLevel ?? heading.level;
+      body += `<h${lvl}><span class="num">${escapeXML(heading.prefix)}</span> ${escapeXML(heading.text)} <span class="ref">(${startDisplay}${endDisplay})</span></h${lvl}>\n`;
     }
   }
 

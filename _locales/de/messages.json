@@ -601,5 +601,20 @@
   },
   "tagRequiredAlert": {
     "message": "Bitte geben Sie eine Bezeichnung ein."
-  }
+  },
+  "outlineFormat": { "message": "Gliederungsformat:" },
+  "formatTraditional": { "message": "Traditionell" },
+  "formatThematic": { "message": "Thematisch" },
+  "formatPlot": { "message": "Handlung" },
+  "themeKeyLabel": { "message": "Thema" },
+  "themeKeyPlaceholder": { "message": "Thema eingeben oder auswählen" },
+  "themeKeyRequiredAlert": { "message": "Bitte geben Sie ein Thema ein." },
+  "plotElementLabel": { "message": "Handlungselement" },
+  "plotElementNone": { "message": "— Auswählen —" },
+  "plotInitialSituation": { "message": "Ausgangssituation" },
+  "plotConflict": { "message": "Konflikt" },
+  "plotTransformingAction": { "message": "Wendepunkt" },
+  "plotResolution": { "message": "Auflösung" },
+  "plotFinalSituation": { "message": "Schlusssituation" },
+  "plotElementRequiredAlert": { "message": "Bitte wählen Sie ein Handlungselement." }
 }

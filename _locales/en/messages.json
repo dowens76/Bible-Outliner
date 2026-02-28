@@ -722,5 +722,65 @@
   "tagRequiredAlert": {
     "message": "Please enter a label for the non-outline item.",
     "description": "Alert when user checks the tag checkbox but leaves the label blank"
+  },
+  "outlineFormat": {
+    "message": "Outline format:",
+    "description": "Label for the outline format selector in settings"
+  },
+  "formatTraditional": {
+    "message": "Traditional",
+    "description": "Traditional I./A./1. outline format button"
+  },
+  "formatThematic": {
+    "message": "Thematic",
+    "description": "Thematic A/B/C outline format button"
+  },
+  "formatPlot": {
+    "message": "Plot",
+    "description": "Plot analysis outline format button"
+  },
+  "themeKeyLabel": {
+    "message": "Theme",
+    "description": "Label for the theme identifier input in heading modal (thematic format)"
+  },
+  "themeKeyPlaceholder": {
+    "message": "Enter or select a theme",
+    "description": "Placeholder for the theme identifier input"
+  },
+  "themeKeyRequiredAlert": {
+    "message": "Please enter a theme identifier.",
+    "description": "Alert when saving a heading in thematic mode without a theme"
+  },
+  "plotElementLabel": {
+    "message": "Plot element",
+    "description": "Label for the plot element dropdown in heading modal (plot format)"
+  },
+  "plotElementNone": {
+    "message": "— Select element —",
+    "description": "Default empty option in plot element dropdown"
+  },
+  "plotInitialSituation": {
+    "message": "Initial Situation",
+    "description": "Plot analysis: initial situation element"
+  },
+  "plotConflict": {
+    "message": "Conflict",
+    "description": "Plot analysis: conflict element"
+  },
+  "plotTransformingAction": {
+    "message": "Transforming Action",
+    "description": "Plot analysis: transforming action element"
+  },
+  "plotResolution": {
+    "message": "Resolution",
+    "description": "Plot analysis: resolution element"
+  },
+  "plotFinalSituation": {
+    "message": "Final Situation",
+    "description": "Plot analysis: final situation element"
+  },
+  "plotElementRequiredAlert": {
+    "message": "Please select a plot element.",
+    "description": "Alert when saving a heading in plot mode without selecting an element"
   }
 }

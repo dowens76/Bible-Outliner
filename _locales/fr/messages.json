@@ -601,5 +601,20 @@
   },
   "tagRequiredAlert": {
     "message": "Veuillez saisir une étiquette pour l'élément hors plan."
-  }
+  },
+  "outlineFormat": { "message": "Format du plan :" },
+  "formatTraditional": { "message": "Traditionnel" },
+  "formatThematic": { "message": "Thématique" },
+  "formatPlot": { "message": "Intrigue" },
+  "themeKeyLabel": { "message": "Thème" },
+  "themeKeyPlaceholder": { "message": "Saisir ou sélectionner un thème" },
+  "themeKeyRequiredAlert": { "message": "Veuillez saisir un identifiant de thème." },
+  "plotElementLabel": { "message": "Élément narratif" },
+  "plotElementNone": { "message": "— Sélectionner —" },
+  "plotInitialSituation": { "message": "Situation initiale" },
+  "plotConflict": { "message": "Conflit" },
+  "plotTransformingAction": { "message": "Action transformatrice" },
+  "plotResolution": { "message": "Résolution" },
+  "plotFinalSituation": { "message": "Situation finale" },
+  "plotElementRequiredAlert": { "message": "Veuillez sélectionner un élément narratif." }
 }
