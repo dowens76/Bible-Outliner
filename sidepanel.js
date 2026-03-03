@@ -1196,8 +1196,13 @@ async function navigateToVerse(reference) {
       const url       = buildNavigationUrl(ctx.site, book, chapter, version, versionId);
       console.log('Navigating to:', url);
 
-      // Update the tab URL
-      await chrome.tabs.update(tabs[0].id, { url });
+      // If a supported site is already open, navigate it in place.
+      // Otherwise open StepBible in a new tab so the user's current page is preserved.
+      if (ctx.site) {
+        await chrome.tabs.update(tabs[0].id, { url });
+      } else {
+        await chrome.tabs.create({ url });
+      }
 
       // Wait a moment for page to load, then scroll to verse
       setTimeout(async () => {
