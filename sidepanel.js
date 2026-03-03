@@ -1650,10 +1650,17 @@ function assignOutlineNumbers(groups) {
 }
 
 // Traditional format: I. / A. / 1. / a. / (1) / (a)
-// Counters reset at the start of each book and when ascending levels.
+// Counters reset between book groups and when ascending levels.
+// Books in the same BOOK_GROUPS entry share counters so they continue across the boundary.
 function assignOutlineNumbersTraditional(groups) {
+  const counters = [0, 0, 0, 0, 0, 0];
+  let lastGroupId = null;
   return groups.map(group => {
-    const counters = [0, 0, 0, 0, 0, 0];
+    const groupId = getBooksToLoad(group.bookCode).join(',');
+    if (groupId !== lastGroupId) {
+      counters.fill(0);
+      lastGroupId = groupId;
+    }
     const headings = group.headings.map(h => {
       if (h.tag) return { ...h, prefix: '' }; // non-outline: no numbering, no counter changes
       const idx = h.level - 1;

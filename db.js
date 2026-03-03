@@ -531,7 +531,15 @@ class BibleOutlineDB {
       let endRef = null;
       for (let j = i + 1; j < headings.length; j++) {
         if (headings[j].level <= current.level) {
-          endRef = getPreviousVerse(headings[j].reference);
+          const nextRef  = headings[j].reference;
+          const currBook = startRef.split('.')[0];
+          const nextBook = nextRef.split('.')[0];
+          if (nextBook !== currBook) {
+            // Next heading is in a different book — cap end at the last verse of the current book
+            endRef = this.getLastVerseRef(currBook);
+          } else {
+            endRef = getPreviousVerse(nextRef);
+          }
           break;
         }
       }
