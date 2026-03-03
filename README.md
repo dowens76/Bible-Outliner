@@ -2,6 +2,8 @@
 
 A Brave/Chrome extension for creating hierarchical outlines of Bible books with verse references. Features a side panel interface that integrates with multiple Bible websites.
 
+If you use this extension and have feedback, you may share that at https://forms.gle/vu76uWbjWZ137pzQ6. 
+
 ## Features
 
 - **Hierarchical Outlines** — Create headings at 6 levels (H1–H6); choose from three outline formats: Traditional (I., A., 1., a., (1), (a)), Thematic (A/B/C… with recurring-theme subscripts), or Plot Analysis (narrative element labels)
