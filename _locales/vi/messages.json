@@ -278,6 +278,12 @@
   "themeBlue": {
     "message": "Xanh dương"
   },
+  "themeGreen": {
+    "message": "Xanh lá"
+  },
+  "themeCrimson": {
+    "message": "Đỏ thẫm"
+  },
   "headingColors": {
     "message": "Màu tiêu đề:"
   },

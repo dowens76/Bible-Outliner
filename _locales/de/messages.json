@@ -278,6 +278,12 @@
   "themeBlue": {
     "message": "Blau"
   },
+  "themeGreen": {
+    "message": "Grün"
+  },
+  "themeCrimson": {
+    "message": "Karmesin"
+  },
   "headingColors": {
     "message": "Überschriften-Farben:"
   },

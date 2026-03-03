@@ -15,7 +15,7 @@
 
 :root {
   /* Header */
-  --header-bg:      linear-gradient(135deg, #8B4513 0%, #5C2008 100%);
+  --header-bg:      linear-gradient(135deg, #1e3a5f 0%, #0f2040 100%);
 
   /* Accent scale */
   --accent:         #7B3410;   /* primary buttons, borders, active states */
@@ -92,6 +92,48 @@ body.theme-blue {
   --prefix-color:   #888;
   --ref-color:      #888;
   --scrollbar-hover: #2d81c5;
+}
+
+/* ── Green theme (forest / verdant) ─────────────────────────────────────── */
+body.theme-green {
+  --header-bg:      linear-gradient(135deg, #276b40 0%, #163e26 100%);
+  --accent:         #276b40;
+  --accent-dark:    #163e26;
+  --accent-mid:     #3d8a5a;
+  --accent-muted:   #5aa374;
+  --accent-subtle:  #7ab892;
+  --accent-border:  #a8d4b8;
+  --border:         #c8e8d4;
+  --bg:             #f0f8f3;
+  --bg-mid:         #e4f0e8;
+  --bg-hover:       #d8eadc;
+  --bg-tinted:      #dceee1;
+  --bg-active:      #ecf6ee;
+  --card:           #f8fdf9;
+  --prefix-color:   #276b40;
+  --ref-color:      #5a7a64;
+  --scrollbar-hover: #276b40;
+}
+
+/* ── Crimson theme (crimson header + gold / yellow tones) ────────────────── */
+body.theme-crimson {
+  --header-bg:      linear-gradient(135deg, #a52015 0%, #6e1009 100%);
+  --accent:         #a52015;
+  --accent-dark:    #6e1009;
+  --accent-mid:     #c44020;
+  --accent-muted:   #c87030;
+  --accent-subtle:  #c09040;
+  --accent-border:  #c8a850;
+  --border:         #ddc870;
+  --bg:             #fffee8;
+  --bg-mid:         #fef8d0;
+  --bg-hover:       #fdf0b0;
+  --bg-tinted:      #fef4c0;
+  --bg-active:      #fffde8;
+  --card:           #ffffff;
+  --prefix-color:   #a52015;
+  --ref-color:      #b84020;
+  --scrollbar-hover: #a52015;
 }
 
 /* ── Reset ───────────────────────────────────────────────────────────────── */

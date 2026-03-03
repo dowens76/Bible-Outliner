@@ -94,9 +94,11 @@ const PLOT_LABEL_KEYS = {
 // ── Color scheme ─────────────────────────────────────────────────────────────
 
 function applyColorScheme(theme) {
-  document.body.classList.remove('theme-gray', 'theme-blue');
-  if (theme === 'gray') document.body.classList.add('theme-gray');
-  if (theme === 'blue') document.body.classList.add('theme-blue');
+  document.body.classList.remove('theme-gray', 'theme-blue', 'theme-green', 'theme-crimson');
+  if (theme === 'gray')    document.body.classList.add('theme-gray');
+  if (theme === 'blue')    document.body.classList.add('theme-blue');
+  if (theme === 'green')   document.body.classList.add('theme-green');
+  if (theme === 'crimson') document.body.classList.add('theme-crimson');
 
   document.querySelectorAll('.theme-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === theme);

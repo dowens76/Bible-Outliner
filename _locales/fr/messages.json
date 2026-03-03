@@ -278,6 +278,12 @@
   "themeBlue": {
     "message": "Bleu"
   },
+  "themeGreen": {
+    "message": "Vert"
+  },
+  "themeCrimson": {
+    "message": "Cramoisi"
+  },
   "headingColors": {
     "message": "Couleurs des titres :"
   },

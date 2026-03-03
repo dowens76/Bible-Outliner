@@ -305,6 +305,14 @@
     "message": "Blue",
     "description": "Blue theme button"
   },
+  "themeGreen": {
+    "message": "Green",
+    "description": "Green theme button"
+  },
+  "themeCrimson": {
+    "message": "Crimson",
+    "description": "Crimson theme button"
+  },
   "headingColors": {
     "message": "Heading colors:",
     "description": "Palette picker label"
