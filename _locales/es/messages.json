@@ -616,5 +616,10 @@
   "plotTransformingAction": { "message": "Acción transformadora" },
   "plotResolution": { "message": "Resolución" },
   "plotFinalSituation": { "message": "Situación final" },
-  "plotElementRequiredAlert": { "message": "Seleccione un elemento de trama." }
+  "plotElementRequiredAlert": { "message": "Seleccione un elemento de trama." },
+  "passageAll":             { "message": "Todos los pasajes" },
+  "passageFormAdd":         { "message": "Nuevo pasaje" },
+  "passageFormEdit":        { "message": "Editar pasaje" },
+  "confirmDeletePassage":   { "message": "¿Eliminar pasaje $1?" },
+  "endRefBeforeStartAlert": { "message": "La referencia final debe ser posterior a la referencia inicial." }
 }

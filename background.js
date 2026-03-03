@@ -1,5 +1,17 @@
 // background.js - Service worker for the extension
 
+// Persistent port to the side panel — more reliable than runtime.sendMessage in MV3
+let sidePanelPort = null;
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name === 'sidepanel') {
+    sidePanelPort = port;
+    port.onDisconnect.addListener(() => {
+      if (sidePanelPort === port) sidePanelPort = null;
+    });
+  }
+});
+
 // Toggle side panel when extension icon is clicked
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ tabId: tab.id });
@@ -29,6 +41,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
     });
     return true;
+  } else if (message.type === 'OPEN_HEADING_MODAL_WITH_VERSE' ||
+             message.type === 'HIGHLIGHT_HEADING') {
+    // Relay content-script → side panel via persistent port.
+    // chrome.runtime.sendMessage from content scripts doesn't reliably reach
+    // side panels in MV3, so we use the stored port instead.
+    if (sidePanelPort) {
+      sidePanelPort.postMessage(message);
+    }
   }
 });
 

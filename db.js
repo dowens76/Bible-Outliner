@@ -111,7 +111,7 @@ function getPreviousVerse(reference) {
 class BibleOutlineDB {
   constructor() {
     this.dbName = 'BibleOutlineDB';
-    this.version = 3;
+    this.version = 4;
     this.db = null;
   }
 
@@ -163,6 +163,11 @@ class BibleOutlineDB {
         const headingsStore = tx.objectStore('headings');
         if (!headingsStore.indexNames.contains('setId')) {
           headingsStore.createIndex('setId', 'setId', { unique: false });
+        }
+
+        // v4: passages store
+        if (!db.objectStoreNames.contains('passages')) {
+          db.createObjectStore('passages', { keyPath: 'id', autoIncrement: true });
         }
       };
     });
@@ -285,11 +290,11 @@ class BibleOutlineDB {
     });
   }
 
-  async addOutlineSet({ name, lang }) {
+  async addOutlineSet({ name, lang, format = 'traditional' }) {
     return new Promise((resolve, reject) => {
       const tx    = this.db.transaction(['outlineSets'], 'readwrite');
       const store = tx.objectStore('outlineSets');
-      const req   = store.add({ name, lang });
+      const req   = store.add({ name, lang, format });
       req.onsuccess = () => resolve(req.result);
       req.onerror   = () => reject(req.error);
     });
@@ -330,6 +335,57 @@ class BibleOutlineDB {
 
       // Delete the set record itself
       setsSt.delete(id);
+    });
+  }
+
+  // ── Passages ───────────────────────────────────────────────────────────────
+
+  async addPassage({ setId, book, startRef, endRef }) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['passages'], 'readwrite');
+      const store = tx.objectStore('passages');
+      const req   = store.add({ setId, book, startRef, endRef });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror   = () => reject(req.error);
+    });
+  }
+
+  async getPassages(setId, book) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['passages'], 'readonly');
+      const store = tx.objectStore('passages');
+      const req   = store.getAll();
+      req.onsuccess = () => {
+        const all = req.result.filter(p => p.setId === setId && p.book === book);
+        all.sort((a, b) => this.createSortKey(a.startRef).localeCompare(this.createSortKey(b.startRef)));
+        resolve(all);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  async updatePassage(id, updates) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['passages'], 'readwrite');
+      const store = tx.objectStore('passages');
+      const getReq = store.get(id);
+      getReq.onsuccess = () => {
+        const updated = { ...getReq.result, ...updates };
+        const putReq  = store.put(updated);
+        putReq.onsuccess = () => resolve(updated);
+        putReq.onerror   = () => reject(putReq.error);
+      };
+      getReq.onerror = () => reject(getReq.error);
+    });
+  }
+
+  async deletePassage(id) {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['passages'], 'readwrite');
+      const store = tx.objectStore('passages');
+      const req   = store.delete(id);
+      req.onsuccess = () => resolve();
+      req.onerror   = () => reject(req.error);
     });
   }
 
@@ -445,6 +501,11 @@ class BibleOutlineDB {
         };
       });
     });
+  }
+
+  // Return the last verse number in a specific chapter, e.g. getLastVerseOfChapter('Ps', 1) → 6
+  getLastVerseOfChapter(book, chapter) {
+    return getLastVerse(book, chapter);
   }
 
   // Return the OSIS reference of the last verse in a book, e.g. "2Sam.24.25"

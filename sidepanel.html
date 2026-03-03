@@ -146,6 +146,33 @@
       </button>
     </div>
 
+    <!-- Passage Bar (thematic / plot formats only) -->
+    <div id="passageBar" class="passage-bar" style="display:none;">
+      <select id="passageSelect" class="book-select" style="flex:1;"></select>
+      <button id="addPassageBtn"    class="icon-btn" title="Add passage">&#43;</button>
+      <button id="editPassageBtn"   class="icon-btn" title="Edit passage" style="display:none;">&#9998;</button>
+      <button id="deletePassageBtn" class="icon-btn" title="Delete passage" style="display:none;">&#128465;</button>
+    </div>
+
+    <!-- Passage Form (inline, shown when adding / editing) -->
+    <div id="passageForm" class="passage-form" style="display:none;">
+      <div class="passage-form-title" id="passageFormTitle">New Passage</div>
+      <div class="passage-form-row">
+        <span class="passage-form-label">From</span>
+        <input type="number" id="passageStartChapter" class="form-control passage-num" min="1" placeholder="Ch">
+        <input type="number" id="passageStartVerse"   class="form-control passage-num" min="1" placeholder="V">
+      </div>
+      <div class="passage-form-row">
+        <span class="passage-form-label">To</span>
+        <input type="number" id="passageEndChapter" class="form-control passage-num" min="1" placeholder="Ch">
+        <input type="number" id="passageEndVerse"   class="form-control passage-num" min="1" placeholder="V">
+      </div>
+      <div class="passage-form-actions">
+        <button id="cancelPassageBtn" class="btn-small">Cancel</button>
+        <button id="savePassageBtn"   class="btn-small btn-small-primary">Save</button>
+      </div>
+    </div>
+
     <!-- Reorder Mode Banner -->
     <div id="reorderBanner" class="reorder-banner" style="display:none;">
       <span class="reorder-hint" data-i18n="dragToReorder">Drag headings to reorder</span>
@@ -180,15 +207,6 @@
         </svg>
       </button>
       <div id="settingsPanel" class="settings-panel" style="display:none;">
-        <!-- Outline format -->
-        <div class="theme-section">
-          <span class="backup-label" data-i18n="outlineFormat">Outline format:</span>
-          <div class="theme-options">
-            <button class="format-btn active" data-format="traditional" data-i18n="formatTraditional">Traditional</button>
-            <button class="format-btn" data-format="thematic" data-i18n="formatThematic">Thematic</button>
-            <button class="format-btn" data-format="plot" data-i18n="formatPlot">Plot</button>
-          </div>
-        </div>
         <!-- Language selector -->
         <div class="theme-section">
           <span class="backup-label" data-i18n="settingsLanguage">Language:</span>

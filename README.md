@@ -90,6 +90,54 @@ Ranges are calculated automatically:
 - Ranges are displayed in parentheses: `(1:1–2:5)`
 - Grouped books (e.g., 1–2 Samuel) extend ranges across both books
 
+### Outline Formats
+
+Select a format from the **Settings** panel (gear icon). Each outline set has its own format — switching sets automatically applies that set's format. Switching formats is non-destructive; the underlying data for all formats is always preserved.
+
+#### Traditional *(default)*
+
+Headings are numbered using the classic legal-outline scheme: **I., A., 1., a., (1), (a)** at levels 1–6. The heading level (H1–H6) controls both the indentation and the numbering tier.
+
+#### Thematic
+
+Designed for tracking recurring themes across a passage — useful for chiastic structures, repeating motifs, and intertextual patterns.
+
+- Each heading is assigned a **theme identifier** — a short label you type in the modal (e.g., "covenant", "blessing"). The modal auto-suggests identifiers already in use.
+- The extension assigns letters **A, B, C…** to theme identifiers in the order they first appear. The letter rank also determines indentation: A headings are flush left (level-1 indent), B headings are indented one level, C headings two levels, and so on.
+- When the **same theme identifier appears more than once**, Unicode subscripts are added automatically: **A₁, A₂, A₃…** If a theme appears only once, no subscript is shown.
+
+**Example** — a Pauline chiasm:
+```
+A  Paul's greeting (1:1–2)
+  B  Thanksgiving (1:3–11)
+    C  Paul's travel plans (1:12–26)
+  B₁ Exhortation to unity (1:27–2:18)
+A₁ Timothy and Epaphroditus (2:19–30)
+```
+
+#### Plot Analysis
+
+Designed for narrative analysis of biblical stories. Each heading is assigned to one of five **plot element** categories chosen from a dropdown in the heading modal:
+
+| Label | Meaning |
+|---|---|
+| **Initial Situation** | The setting, characters, or circumstances at the story's start |
+| **Conflict** | The problem, tension, or challenge introduced |
+| **Transforming Action** | The event, decision, or divine intervention that changes the course |
+| **Resolution** | The outcome or response that follows the transforming action |
+| **Final Situation** | The new state of affairs at the story's end |
+
+When the same plot element appears more than once, a counter is added automatically: **Conflict 1**, **Conflict 2**, etc. All plot headings are displayed at the same indentation level.
+
+**Example:**
+```
+Initial Situation    Abraham and Sarah are childless (Gen 11:30)
+Conflict             God commands Abraham to leave his country (Gen 12:1)
+Transforming Action  Abraham obeys; God promises blessing (Gen 12:2–3)
+Resolution           Abraham arrives in Canaan; God confirms the promise (Gen 12:4–7)
+Final Situation      Abraham builds an altar and continues toward the Negev (Gen 12:8–9)
+```
+
 ### Outline Sets
 
 The **set selector bar** (between the header and the book selector) shows the active outline set. Each set has a name and an associated language tag (ISO 639-1).
@@ -129,7 +177,7 @@ Then choose a format:
 | Export as LibreOffice | `.odt` | LibreOffice Writer |
 | Export as PDF | `.pdf` | Print-ready PDF via browser |
 
-All export formats include traditional outline numbering (I., A., 1., a., (1), (a)).
+All export formats reflect the active outline format. In Traditional mode, Word and LibreOffice use their native automatic outline numbering. In Thematic and Plot Analysis modes, the computed prefix (e.g., "A₁" or "Conflict 2") is embedded directly in the paragraph text, and heading styles are still applied for visual formatting.
 
 ### Importing
 
@@ -199,6 +247,8 @@ biblia-outline/
 | `level` | Heading level 1–6 |
 | `text` | Heading text |
 | `notes` | Optional notes (may be empty) |
+| `themeKey` | Theme identifier for Thematic format (optional; empty when not used) |
+| `plotElement` | Plot element code for Plot Analysis format — one of `IS`, `C`, `TA`, `R`, `FS` (optional) |
 | `setId` | Foreign key into `outlineSets.id` |
 | `sortKey` | Computed sort key for canonical ordering |
 | `position` | Integer position for manual ordering (optional) |

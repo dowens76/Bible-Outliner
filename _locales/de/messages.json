@@ -616,5 +616,10 @@
   "plotTransformingAction": { "message": "Wendepunkt" },
   "plotResolution": { "message": "Auflösung" },
   "plotFinalSituation": { "message": "Schlusssituation" },
-  "plotElementRequiredAlert": { "message": "Bitte wählen Sie ein Handlungselement." }
+  "plotElementRequiredAlert": { "message": "Bitte wählen Sie ein Handlungselement." },
+  "passageAll":             { "message": "Alle Abschnitte" },
+  "passageFormAdd":         { "message": "Neuer Abschnitt" },
+  "passageFormEdit":        { "message": "Abschnitt bearbeiten" },
+  "confirmDeletePassage":   { "message": "Abschnitt $1 löschen?" },
+  "endRefBeforeStartAlert": { "message": "Die Endstelle muss nach der Anfangsstelle liegen." }
 }

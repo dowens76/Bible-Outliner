@@ -616,5 +616,10 @@
   "plotTransformingAction": { "message": "Action transformatrice" },
   "plotResolution": { "message": "Résolution" },
   "plotFinalSituation": { "message": "Situation finale" },
-  "plotElementRequiredAlert": { "message": "Veuillez sélectionner un élément narratif." }
+  "plotElementRequiredAlert": { "message": "Veuillez sélectionner un élément narratif." },
+  "passageAll":             { "message": "Tous les passages" },
+  "passageFormAdd":         { "message": "Nouveau passage" },
+  "passageFormEdit":        { "message": "Modifier le passage" },
+  "confirmDeletePassage":   { "message": "Supprimer le passage $1\u00a0?" },
+  "endRefBeforeStartAlert": { "message": "La référence de fin doit être après la référence de début." }
 }

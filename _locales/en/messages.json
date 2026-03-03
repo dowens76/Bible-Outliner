@@ -782,5 +782,25 @@
   "plotElementRequiredAlert": {
     "message": "Please select a plot element.",
     "description": "Alert when saving a heading in plot mode without selecting an element"
+  },
+  "passageAll": {
+    "message": "All passages",
+    "description": "Option in the passage selector to show all headings with no passage filter"
+  },
+  "passageFormAdd": {
+    "message": "New Passage",
+    "description": "Title of the inline passage form when adding"
+  },
+  "passageFormEdit": {
+    "message": "Edit Passage",
+    "description": "Title of the inline passage form when editing"
+  },
+  "confirmDeletePassage": {
+    "message": "Delete passage $1?",
+    "description": "Confirm prompt before deleting a passage"
+  },
+  "endRefBeforeStartAlert": {
+    "message": "The ending reference must come after the beginning reference.",
+    "description": "Alert when passage end is before start"
   }
 }

@@ -72,6 +72,9 @@ let currentSetId = null;
 let editingSetId = null;   // null = add-mode in manage-sets form; int = edit-mode
 let savedLang = 'en';      // UI language code, set during init()
 let currentOutlineFormat = 'traditional'; // 'traditional' | 'thematic' | 'plot'
+let outlineSets = [];                     // cached OutlineSet objects — kept in sync
+let currentPassage = null;               // null = all headings; {id,setId,book,startRef,endRef} = filtered
+let editingPassageId = null;             // null = add mode; number = edit mode
 
 // Unicode subscript numerals for thematic format (A₁, A₂, …)
 const SUBSCRIPT_DIGITS = ['₀','₁','₂','₃','₄','₅','₆','₇','₈','₉'];
@@ -166,21 +169,85 @@ async function initHeadingPalette() {
 
 function applyOutlineFormat(fmt) {
   currentOutlineFormat = fmt;
-  document.querySelectorAll('.format-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.format === fmt);
-  });
+  updatePassageBarVisibility();
 }
 
-async function initOutlineFormat() {
-  const saved = (await db.getSetting('outlineFormat')) || 'traditional';
-  applyOutlineFormat(saved);
-  document.querySelectorAll('.format-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      applyOutlineFormat(btn.dataset.format);
-      await db.setSetting('outlineFormat', btn.dataset.format);
-      await loadHeadings();
-    });
+// ── Passages ──────────────────────────────────────────────────────────────────
+
+function updatePassageBarVisibility() {
+  const show = currentOutlineFormat === 'thematic' || currentOutlineFormat === 'plot';
+  document.getElementById('passageBar').style.display = show ? 'flex' : 'none';
+  if (!show) {
+    currentPassage = null;
+    document.getElementById('passageForm').style.display = 'none';
+  }
+}
+
+async function refreshPassageSelect() {
+  const bar = document.getElementById('passageBar');
+  if (bar.style.display === 'none') return;
+  if (!currentBook || !currentSetId) return;
+
+  const passages = await db.getPassages(currentSetId, currentBook);
+  const sel = document.getElementById('passageSelect');
+  sel.innerHTML = '';
+
+  const allOpt = document.createElement('option');
+  allOpt.value = '';
+  allOpt.textContent = i18n.t('passageAll');
+  sel.appendChild(allOpt);
+
+  passages.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    const grouped = getBooksToLoad(currentBook).length > 1;
+    const fmtRef = (ref) => {
+      const book = ref.split('.')[0];
+      return grouped ? `${book} ${db.formatReference(ref)}` : db.formatReference(ref);
+    };
+    opt.textContent = fmtRef(p.startRef) + ' \u2013 ' + fmtRef(p.endRef);
+    sel.appendChild(opt);
   });
+
+  // Restore or clear selection
+  if (currentPassage) {
+    sel.value = currentPassage.id;
+    if (!sel.value) currentPassage = null;
+  }
+  updatePassageEditDeleteBtns();
+}
+
+function updatePassageEditDeleteBtns() {
+  const hasSelection = !!currentPassage;
+  document.getElementById('editPassageBtn').style.display   = hasSelection ? '' : 'none';
+  document.getElementById('deletePassageBtn').style.display = hasSelection ? '' : 'none';
+}
+
+async function savePassage() {
+  const sCh = parseInt(document.getElementById('passageStartChapter').value);
+  const sV  = parseInt(document.getElementById('passageStartVerse').value);
+  const eCh = parseInt(document.getElementById('passageEndChapter').value);
+  const eV  = parseInt(document.getElementById('passageEndVerse').value);
+  if (!sCh || !sV || !eCh || !eV) { alert(i18n.t('fillInAllFields')); return; }
+  const startRef = `${currentBook}.${sCh}.${sV}`;
+  const endRef   = `${currentBook}.${eCh}.${eV}`;
+  if (db.createSortKey(endRef) < db.createSortKey(startRef)) {
+    alert(i18n.t('endRefBeforeStartAlert'));
+    return;
+  }
+  if (editingPassageId != null) {
+    await db.updatePassage(editingPassageId, { startRef, endRef });
+    if (currentPassage && currentPassage.id === editingPassageId) {
+      currentPassage = { ...currentPassage, startRef, endRef };
+    }
+  } else {
+    const newId = await db.addPassage({ setId: currentSetId, book: currentBook, startRef, endRef });
+    const passages = await db.getPassages(currentSetId, currentBook);
+    currentPassage = passages.find(p => p.id === newId) || null;
+  }
+  document.getElementById('passageForm').style.display = 'none';
+  await refreshPassageSelect();
+  await loadHeadings();
 }
 
 // ── Outline Sets ──────────────────────────────────────────────────────────────
@@ -224,6 +291,7 @@ function populateLangPicker(selectEl, currentLang, locale) {
 /** Re-populate the activeSetSelect options from the database. */
 async function refreshSetSelector() {
   const sets = await db.getOutlineSets();
+  outlineSets = sets;
   const sel = document.getElementById('activeSetSelect');
   const prevId = currentSetId;
   sel.innerHTML = '';
@@ -245,6 +313,7 @@ async function refreshSetSelector() {
 async function initSets() {
   // Populate selector
   const sets = await db.getOutlineSets();
+  outlineSets = sets;
   const sel = document.getElementById('activeSetSelect');
   sel.innerHTML = '';
   sets.forEach(s => {
@@ -261,6 +330,11 @@ async function initSets() {
   currentSetId = targetId;
   if (targetId != null) sel.value = targetId;
 
+  // Apply this set's outline format
+  const activeSet = outlineSets.find(s => s.id === currentSetId);
+  applyOutlineFormat(activeSet?.format || 'traditional');
+  await refreshPassageSelect();
+
   // Populate language picker using current UI locale
   populateLangPicker(document.getElementById('setLangSelect'), 'en', savedLang);
 
@@ -273,6 +347,11 @@ async function initSets() {
   sel.addEventListener('change', async (e) => {
     currentSetId = parseInt(e.target.value, 10);
     await db.setSetting('activeSetId', currentSetId);
+    // Apply the new set's outline format
+    const activeSet = outlineSets.find(s => s.id === currentSetId);
+    applyOutlineFormat(activeSet?.format || 'traditional');
+    currentPassage = null;
+    await refreshPassageSelect();
     await loadHeadings();
   });
 
@@ -388,6 +467,7 @@ function showCopyStatus(msg, type) {
 
 async function renderSetsList() {
   const sets = await db.getOutlineSets();
+  outlineSets = sets;
   const container = document.getElementById('setsList');
   container.innerHTML = '';
   sets.forEach(set => {
@@ -401,6 +481,29 @@ async function renderSetsList() {
     const langSpan = document.createElement('span');
     langSpan.className = 'set-item-lang';
     langSpan.textContent = getLangName(set.lang, savedLang);
+
+    const fmtGroup = document.createElement('div');
+    fmtGroup.className = 'set-item-format';
+    ['traditional', 'thematic', 'plot'].forEach(fmt => {
+      const fmtBtn = document.createElement('button');
+      fmtBtn.className = 'format-btn';
+      fmtBtn.dataset.format = fmt;
+      fmtBtn.textContent = i18n.t('format' + fmt.charAt(0).toUpperCase() + fmt.slice(1));
+      if ((set.format || 'traditional') === fmt) fmtBtn.classList.add('active');
+      fmtBtn.addEventListener('click', async () => {
+        await db.updateOutlineSet(set.id, { format: fmt });
+        const cached = outlineSets.find(s => s.id === set.id);
+        if (cached) cached.format = fmt;
+        fmtGroup.querySelectorAll('.format-btn').forEach(b => {
+          b.classList.toggle('active', b.dataset.format === fmt);
+        });
+        if (set.id === currentSetId) {
+          applyOutlineFormat(fmt);
+          await loadHeadings();
+        }
+      });
+      fmtGroup.appendChild(fmtBtn);
+    });
 
     const actions = document.createElement('div');
     actions.className = 'set-item-actions';
@@ -421,6 +524,7 @@ async function renderSetsList() {
     actions.appendChild(delBtn);
     row.appendChild(nameSpan);
     row.appendChild(langSpan);
+    row.appendChild(fmtGroup);
     row.appendChild(actions);
     container.appendChild(row);
   });
@@ -477,8 +581,12 @@ async function confirmDeleteSet(setId, setName) {
   // Switch active set if we just deleted it
   if (setId === currentSetId) {
     const sets = await db.getOutlineSets();
+    outlineSets = sets;
     currentSetId = sets[0]?.id ?? null;
     if (currentSetId != null) await db.setSetting('activeSetId', currentSetId);
+    // Apply the replacement set's format
+    const activeSet = outlineSets.find(s => s.id === currentSetId);
+    applyOutlineFormat(activeSet?.format || 'traditional');
   }
   await refreshSetSelector();
   if (currentSetId != null) document.getElementById('activeSetSelect').value = currentSetId;
@@ -508,8 +616,7 @@ async function init() {
 
   await initColorScheme();       // apply saved theme before rendering
   await initHeadingPalette();    // apply saved heading palette before rendering
-  await initOutlineFormat();     // apply saved outline format before rendering
-  await initSets();              // load outline sets, set currentSetId
+  await initSets();              // load outline sets, set currentSetId, apply active set's format
   setupEventListeners();
   await loadCurrentBook();
 
@@ -518,8 +625,12 @@ async function init() {
   await initDrive();
   await maybeAutoBackup();
 
-  // Listen for messages from background/content scripts
-  chrome.runtime.onMessage.addListener(handleMessage);
+  // Connect to the background service worker via a persistent port so that
+  // content-script messages (OPEN_HEADING_MODAL_WITH_VERSE, HIGHLIGHT_HEADING)
+  // are reliably relayed here. chrome.runtime.sendMessage from content scripts
+  // doesn't always reach side panels in MV3 when the service worker is dormant.
+  const bgPort = chrome.runtime.connect({ name: 'sidepanel' });
+  bgPort.onMessage.addListener(handleMessage);
 }
 
 // Setup event listeners
@@ -618,7 +729,63 @@ function setupEventListeners() {
   // Current book dropdown
   document.getElementById('currentBookSelect').addEventListener('change', async (e) => {
     currentBook = e.target.value || null;
+    currentPassage = null;
+    await refreshPassageSelect();
     await loadHeadings();
+  });
+
+  // Passage bar
+  document.getElementById('passageSelect').addEventListener('change', async (e) => {
+    const id = e.target.value ? parseInt(e.target.value) : null;
+    if (!id) {
+      currentPassage = null;
+    } else {
+      const passages = await db.getPassages(currentSetId, currentBook);
+      currentPassage = passages.find(p => p.id === id) || null;
+    }
+    updatePassageEditDeleteBtns();
+    await loadHeadings();
+  });
+
+  document.getElementById('addPassageBtn').addEventListener('click', () => {
+    editingPassageId = null;
+    document.getElementById('passageFormTitle').textContent = i18n.t('passageFormAdd');
+    document.getElementById('passageStartChapter').value = '';
+    document.getElementById('passageStartVerse').value   = '';
+    document.getElementById('passageEndChapter').value   = '';
+    document.getElementById('passageEndVerse').value     = '';
+    document.getElementById('passageForm').style.display = 'flex';
+    document.getElementById('passageStartChapter').focus();
+  });
+
+  document.getElementById('editPassageBtn').addEventListener('click', () => {
+    if (!currentPassage) return;
+    editingPassageId = currentPassage.id;
+    document.getElementById('passageFormTitle').textContent = i18n.t('passageFormEdit');
+    const { chapter: sCh, verse: sV } = db.parseReference(currentPassage.startRef);
+    const { chapter: eCh, verse: eV } = db.parseReference(currentPassage.endRef);
+    document.getElementById('passageStartChapter').value = sCh;
+    document.getElementById('passageStartVerse').value   = sV;
+    document.getElementById('passageEndChapter').value   = eCh;
+    document.getElementById('passageEndVerse').value     = eV;
+    document.getElementById('passageForm').style.display = 'flex';
+    document.getElementById('passageStartChapter').focus();
+  });
+
+  document.getElementById('deletePassageBtn').addEventListener('click', async () => {
+    if (!currentPassage) return;
+    const label = db.formatReference(currentPassage.startRef) + ' \u2013 ' + db.formatReference(currentPassage.endRef);
+    if (!confirm(i18n.t('confirmDeletePassage', label))) return;
+    await db.deletePassage(currentPassage.id);
+    currentPassage = null;
+    document.getElementById('passageForm').style.display = 'none';
+    await refreshPassageSelect();
+    await loadHeadings();
+  });
+
+  document.getElementById('savePassageBtn').addEventListener('click', savePassage);
+  document.getElementById('cancelPassageBtn').addEventListener('click', () => {
+    document.getElementById('passageForm').style.display = 'none';
   });
 
   // Go-to-book button
@@ -682,7 +849,7 @@ async function loadCurrentBook() {
   }
 }
 
-// Load headings for current book (or grouped books)
+// Load headings for current book (or grouped books), filtered to the active passage if set
 async function loadHeadings() {
   if (!currentBook) return;
 
@@ -690,8 +857,18 @@ async function loadHeadings() {
     const books = getBooksToLoad(currentBook);
     currentHeadings = await db.getHeadingsByBooks(books, currentSetId);
     applyPositionSort(currentHeadings);
-    const fallbackEndRef = db.getLastVerseRef(books[books.length - 1]);
-    const headingsWithRanges = db.calculateVerseRanges(currentHeadings, fallbackEndRef);
+
+    let headingsToRender = currentHeadings;
+    let fallbackEndRef = db.getLastVerseRef(books[books.length - 1]);
+
+    if (currentPassage) {
+      const pStart = db.createSortKey(currentPassage.startRef);
+      const pEnd   = db.createSortKey(currentPassage.endRef);
+      headingsToRender = currentHeadings.filter(h => h.sortKey >= pStart && h.sortKey <= pEnd);
+      fallbackEndRef = currentPassage.endRef;
+    }
+
+    const headingsWithRanges = db.calculateVerseRanges(headingsToRender, fallbackEndRef);
     renderHeadings(headingsWithRanges);
   } catch (error) {
     console.error('Error loading headings:', error);
@@ -1481,21 +1658,38 @@ function assignOutlineNumbersTraditional(groups) {
 
 // Thematic format: A / B / C… with subscripts for recurring themes (A₁, A₂…).
 // Letter rank (order of first appearance) determines visual indentation level.
+// For Psalms, subscript counts reset at each chapter (psalm) boundary.
 function assignOutlineNumbersThematic(groups) {
-  // Pass 1: map each unique themeKey to a letter index (order of first appearance)
-  //         and count total occurrences of each themeKey across all books.
+  // Pass 1: build global theme-letter mapping (consistent across all books/chapters).
   const themeOrderMap = new Map();   // themeKey → letterIdx
-  const themeTotalCounts = new Map(); // themeKey → total occurrence count
   let nextIdx = 0;
   for (const g of groups) {
     for (const h of g.headings) {
       if (h.tag || !h.themeKey) continue;
       if (!themeOrderMap.has(h.themeKey)) themeOrderMap.set(h.themeKey, nextIdx++);
-      themeTotalCounts.set(h.themeKey, (themeTotalCounts.get(h.themeKey) || 0) + 1);
     }
   }
-  // Pass 2: assign prefix and displayLevel to each heading.
-  const runningCount = new Map(); // themeKey → occurrences seen so far
+  // Pass 1b: count totals per-chapter for Psalms; globally for other books.
+  const psalmChapterTotals = new Map(); // chapter → Map<themeKey, count>
+  const globalTotals = new Map();        // themeKey → count (non-Psalms only)
+  for (const g of groups) {
+    for (const h of g.headings) {
+      if (h.tag || !h.themeKey) continue;
+      if (g.bookCode === 'Ps') {
+        const ch = h.reference.split('.')[1];
+        if (!psalmChapterTotals.has(ch)) psalmChapterTotals.set(ch, new Map());
+        const m = psalmChapterTotals.get(ch);
+        m.set(h.themeKey, (m.get(h.themeKey) || 0) + 1);
+      } else {
+        globalTotals.set(h.themeKey, (globalTotals.get(h.themeKey) || 0) + 1);
+      }
+    }
+  }
+  // Pass 2: assign prefix and displayLevel.
+  // Psalms: running counts reset per chapter. Others: global running counts.
+  const globalRunning = new Map();
+  const psalmRunning = new Map();
+  let currentPsalmChapter = null;
   return groups.map(group => ({
     ...group,
     headings: group.headings.map(h => {
@@ -1503,11 +1697,24 @@ function assignOutlineNumbersThematic(groups) {
       if (!h.themeKey) return { ...h, prefix: '\u2014', displayLevel: 1 };
       const letterIdx = themeOrderMap.get(h.themeKey);
       const letter    = String.fromCharCode(65 + (letterIdx % 26));
-      const total     = themeTotalCounts.get(h.themeKey);
-      const current   = (runningCount.get(h.themeKey) || 0) + 1;
-      runningCount.set(h.themeKey, current);
-      const sub          = total > 1 ? toSubscriptNum(current) : '';
       const displayLevel = Math.min(letterIdx + 1, 6);
+      let total, current;
+      if (group.bookCode === 'Ps') {
+        const ch = h.reference.split('.')[1];
+        if (ch !== currentPsalmChapter) {
+          psalmRunning.clear();
+          currentPsalmChapter = ch;
+        }
+        const chMap = psalmChapterTotals.get(ch) || new Map();
+        total = chMap.get(h.themeKey) || 1;
+        current = (psalmRunning.get(h.themeKey) || 0) + 1;
+        psalmRunning.set(h.themeKey, current);
+      } else {
+        total = globalTotals.get(h.themeKey) || 1;
+        current = (globalRunning.get(h.themeKey) || 0) + 1;
+        globalRunning.set(h.themeKey, current);
+      }
+      const sub = total > 1 ? toSubscriptNum(current) : '';
       return { ...h, prefix: letter + sub, displayLevel };
     }),
   }));

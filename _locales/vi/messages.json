@@ -616,5 +616,10 @@
   "plotTransformingAction": { "message": "Hành động chuyển hóa" },
   "plotResolution": { "message": "Giải quyết" },
   "plotFinalSituation": { "message": "Tình huống cuối" },
-  "plotElementRequiredAlert": { "message": "Vui lòng chọn yếu tố cốt truyện." }
+  "plotElementRequiredAlert": { "message": "Vui lòng chọn yếu tố cốt truyện." },
+  "passageAll":             { "message": "Tất cả đoạn văn" },
+  "passageFormAdd":         { "message": "Đoạn văn mới" },
+  "passageFormEdit":        { "message": "Chỉnh sửa đoạn văn" },
+  "confirmDeletePassage":   { "message": "Xóa đoạn văn $1?" },
+  "endRefBeforeStartAlert": { "message": "Tham chiếu kết thúc phải sau tham chiếu bắt đầu." }
 }
