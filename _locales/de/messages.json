@@ -627,5 +627,21 @@
   "passageFormAdd":         { "message": "Neuer Abschnitt" },
   "passageFormEdit":        { "message": "Abschnitt bearbeiten" },
   "confirmDeletePassage":   { "message": "Abschnitt $1 löschen?" },
-  "endRefBeforeStartAlert": { "message": "Die Endstelle muss nach der Anfangsstelle liegen." }
+  "endRefBeforeStartAlert": { "message": "Die Endstelle muss nach der Anfangsstelle liegen." },
+  "customThemesLabel": {
+    "message": "Eigene Themen (zusätzlich zu A–Z):",
+    "description": "Label above the custom-themes tag list in the manage-sets modal"
+  },
+  "customThemePlaceholder": {
+    "message": "Neues Thema",
+    "description": "Placeholder for the custom theme input"
+  },
+  "customThemeAdd": {
+    "message": "Hinzufügen",
+    "description": "Button to add a custom theme label"
+  },
+  "customThemeRemove": {
+    "message": "Entfernen",
+    "description": "Tooltip on the × button for removing a custom theme"
+  }
 }

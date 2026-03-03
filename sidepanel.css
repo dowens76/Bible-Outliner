@@ -1157,6 +1157,7 @@ body.reorder-mode .heading-item:hover .heading-actions {
 .set-item {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 7px 10px;
   background: var(--bg-mid);
@@ -1192,6 +1193,72 @@ body.reorder-mode .heading-item:hover .heading-actions {
   display: flex;
   gap: 3px;
   flex-shrink: 0;
+}
+
+/* Custom themes subsection inside each set row */
+
+.custom-themes-section {
+  flex: 0 0 100%;   /* force to its own wrapped row */
+  order: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.custom-themes-label {
+  font-size: 11px;
+  color: #888;
+  font-weight: 500;
+}
+
+.custom-themes-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.custom-theme-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: var(--accent-bg, #e8eaf6);
+  border: 1px solid var(--accent-border, #c5cae9);
+  border-radius: 10px;
+  font-size: 11px;
+  color: #333;
+}
+
+.custom-theme-del {
+  background: none;
+  border: none;
+  padding: 0 1px;
+  font-size: 13px;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+}
+.custom-theme-del:hover { color: #d32f2f; }
+
+.custom-themes-add-row {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.custom-theme-input {
+  flex: 1;
+  min-width: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
 }
 
 /* Reuse .btn-small for the edit/delete buttons in set rows */

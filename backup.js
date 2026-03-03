@@ -48,16 +48,19 @@ function hashString(str) {
 
 /**
  * Build the full JSON content for a backup.
- * Produces a wrapped object { version, sets, headings } so that outline-set
- * metadata is preserved alongside every heading's setId field.
- * The regular export (used for import) remains a plain array for
- * backwards-compatibility; the import handler accepts both formats.
+ * Produces a wrapped object { version: 3, sets, passages, headings } so that:
+ *  - outline-set metadata (name, lang, format/outline-type) is preserved,
+ *  - every heading retains its setId and position for faithful restore,
+ *  - passage ranges used by thematic/plot outlines are included.
+ * The regular per-set export remains a plain array; the import handler accepts
+ * both formats (plain array and this wrapped object).
  * @returns {Promise<string>} JSON string
  */
 async function buildBackupContent() {
-  const [rawHeadings, sets] = await Promise.all([
-    db.getAllHeadings(),       // all headings (no setId filter) — includes setId fields
-    db.getOutlineSets()        // all outline-set records
+  const [rawHeadings, sets, passages] = await Promise.all([
+    db.getAllHeadings(),    // all headings (no setId filter) — includes setId fields
+    db.getOutlineSets(),   // all outline-set records (id, name, lang, format)
+    db.getAllPassages()    // all passage ranges (for thematic/plot outlines)
   ]);
 
   let fallbackEndRef = null;
@@ -67,10 +70,31 @@ async function buildBackupContent() {
   }
 
   const headingsWithRanges = db.calculateVerseRanges(rawHeadings, fallbackEndRef);
-  // Parse the grouped-array JSON produced by generateJSONExport so we can
-  // embed it under a `headings` key alongside the sets metadata.
-  const headingsData = JSON.parse(generateJSONExport(headingsWithRanges));
-  return JSON.stringify({ version: 2, sets, headings: headingsData }, null, 2);
+
+  // Build headings data directly (not via generateJSONExport) so that setId
+  // and position are preserved — generateJSONExport strips those fields.
+  const groups = groupHeadingsByBook(headingsWithRanges);
+  const headingsData = groups.map(group => ({
+    book: group.bookCode,
+    bookName: group.bookName,
+    headings: group.headings.map(h => ({
+      text: h.text,
+      level: h.level,
+      reference: h.reference,
+      book: h.book,
+      setId: h.setId,
+      ...(h.notes        ? { notes:       h.notes       } : {}),
+      ...(h.tag          ? { tag:         h.tag         } : {}),
+      ...(h.themeKey     ? { themeKey:    h.themeKey    } : {}),
+      ...(h.plotElement  ? { plotElement: h.plotElement } : {}),
+      ...(h.position != null ? { position: h.position } : {}),
+    }))
+  }));
+
+  // Strip the auto-generated id from passages — it will be re-generated on import
+  const passagesData = passages.map(({ id: _id, ...p }) => p);
+
+  return JSON.stringify({ version: 3, sets, passages: passagesData, headings: headingsData }, null, 2);
 }
 
 // ── Storage helpers ───────────────────────────────────────────────────────────

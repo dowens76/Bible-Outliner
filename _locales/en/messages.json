@@ -810,5 +810,21 @@
   "endRefBeforeStartAlert": {
     "message": "The ending reference must come after the beginning reference.",
     "description": "Alert when passage end is before start"
+  },
+  "customThemesLabel": {
+    "message": "Custom themes (in addition to A–Z):",
+    "description": "Label above the custom-themes tag list in the manage-sets modal"
+  },
+  "customThemePlaceholder": {
+    "message": "New theme label",
+    "description": "Placeholder for the custom theme input"
+  },
+  "customThemeAdd": {
+    "message": "Add",
+    "description": "Button to add a custom theme label"
+  },
+  "customThemeRemove": {
+    "message": "Remove",
+    "description": "Tooltip on the × button for removing a custom theme"
   }
 }

@@ -527,9 +527,109 @@ async function renderSetsList() {
     row.appendChild(nameSpan);
     row.appendChild(langSpan);
     row.appendChild(fmtGroup);
+    row.appendChild(buildCustomThemesSection(set));
     row.appendChild(actions);
     container.appendChild(row);
   });
+}
+
+// Build the custom-themes sub-section shown inside each set row.
+function buildCustomThemesSection(set) {
+  const section = document.createElement('div');
+  section.className = 'custom-themes-section';
+  section.dataset.setId = set.id;
+
+  const label = document.createElement('span');
+  label.className = 'custom-themes-label';
+  label.textContent = i18n.t('customThemesLabel');
+  section.appendChild(label);
+
+  // Tag list
+  const tagList = document.createElement('div');
+  tagList.className = 'custom-themes-tags';
+  renderCustomThemeTags(tagList, set);
+  section.appendChild(tagList);
+
+  // Add input row
+  const addRow = document.createElement('div');
+  addRow.className = 'custom-themes-add-row';
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'custom-theme-input';
+  input.placeholder = i18n.t('customThemePlaceholder');
+  input.maxLength = 40;
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'btn-small';
+  addBtn.textContent = i18n.t('customThemeAdd');
+  addBtn.addEventListener('click', async () => {
+    const key = input.value.trim();
+    const err = await addCustomTheme(set.id, key);
+    if (err) { input.style.outline = '1px solid #d32f2f'; setTimeout(() => { input.style.outline = ''; }, 1500); return; }
+    input.value = '';
+    // Re-render tag list without a full renderSetsList call
+    const cachedSet = outlineSets.find(s => s.id === set.id);
+    if (cachedSet) renderCustomThemeTags(tagList, cachedSet);
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') addBtn.click(); });
+
+  addRow.appendChild(input);
+  addRow.appendChild(addBtn);
+  section.appendChild(addRow);
+
+  return section;
+}
+
+// Render (or re-render) the tag list inside a custom-themes-tags container.
+function renderCustomThemeTags(container, set) {
+  container.innerHTML = '';
+  const themes = set.customThemes || [];
+  themes.forEach(key => {
+    const tag = document.createElement('span');
+    tag.className = 'custom-theme-tag';
+    tag.textContent = key;
+
+    const del = document.createElement('button');
+    del.className = 'custom-theme-del';
+    del.textContent = '×';
+    del.title = i18n.t('customThemeRemove');
+    del.addEventListener('click', async () => {
+      await removeCustomTheme(set.id, key);
+      const cachedSet = outlineSets.find(s => s.id === set.id);
+      if (cachedSet) renderCustomThemeTags(container, cachedSet);
+    });
+
+    tag.appendChild(del);
+    container.appendChild(tag);
+  });
+}
+
+// Add a custom theme key to a set's registry.
+// Returns an error string on failure, or null on success.
+async function addCustomTheme(setId, key) {
+  if (!key) return 'empty';
+  // Reject single uppercase letters — those are the fixed A–Z defaults
+  if (/^[A-Z]$/.test(key)) return 'default';
+  const set = outlineSets.find(s => s.id === setId);
+  if (!set) return 'notFound';
+  if ((set.customThemes || []).includes(key)) return 'duplicate';
+  const updated = [...(set.customThemes || []), key];
+  await db.updateOutlineSet(setId, { customThemes: updated });
+  set.customThemes = updated;
+  // Refresh datalist if this is the currently active set
+  if (setId === currentSetId) updateModalForFormat();
+  return null;
+}
+
+// Remove a custom theme key from a set's registry.
+async function removeCustomTheme(setId, key) {
+  const set = outlineSets.find(s => s.id === setId);
+  if (!set) return;
+  const updated = (set.customThemes || []).filter(k => k !== key);
+  await db.updateOutlineSet(setId, { customThemes: updated });
+  set.customThemes = updated;
+  if (setId === currentSetId) updateModalForFormat();
 }
 
 function startEditSet(set) {
@@ -873,7 +973,14 @@ async function loadHeadings() {
     if (currentPassage) {
       const pStart = db.createSortKey(currentPassage.startRef);
       const pEnd   = db.createSortKey(currentPassage.endRef);
-      headingsToRender = currentHeadings.filter(h => h.sortKey >= pStart && h.sortKey <= pEnd);
+      // If the passage end has no mid-verse suffix (a/b), expand the comparison to
+      // include any sub-verse halves of that verse.  For example, a passage ending at
+      // Ps.117.2 should include headings at Ps.117.2a and Ps.117.2b, whose sort keys
+      // ("…002a", "…002b") are lexicographically greater than the bare "…002".
+      const endVerseRaw = currentPassage.endRef.split('.')[2] || '';
+      const endHasSuffix = endVerseRaw.endsWith('a') || endVerseRaw.endsWith('b');
+      const pEndExpanded = endHasSuffix ? pEnd : pEnd + 'b';
+      headingsToRender = currentHeadings.filter(h => h.sortKey >= pStart && h.sortKey <= pEndExpanded);
       fallbackEndRef = currentPassage.endRef;
     }
 
@@ -1133,8 +1240,12 @@ function updateModalForFormat() {
   document.getElementById('themeKeyGroup').style.display     = isThm  ? 'block' : 'none';
   document.getElementById('plotElementGroup').style.display  = isPlt  ? 'block' : 'none';
   if (isThm) {
-    // Populate datalist with existing themeKeys from current headings
-    const keys = [...new Set(currentHeadings.filter(h => h.themeKey).map(h => h.themeKey))];
+    // A–Z are always available as default theme suggestions
+    const DEFAULT_THEMES = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i));
+    // Add any custom themes defined for the current outline set
+    const activeSet = outlineSets.find(s => s.id === currentSetId);
+    const custom = activeSet?.customThemes ?? [];
+    const keys = [...DEFAULT_THEMES, ...custom];
     document.getElementById('themeKeySuggestions').innerHTML =
       keys.map(k => `<option value="${k.replace(/"/g, '&quot;')}">`).join('');
   }
@@ -2236,12 +2347,12 @@ function getBookName(code) {
 async function handleImportFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-  
+
   const statusDiv = document.getElementById('importStatus');
   statusDiv.style.display = 'block';
   statusDiv.style.color = '#666';
   statusDiv.textContent = i18n.t('readingFile');
-  
+
   try {
     const text = await file.text();
     const data = JSON.parse(text);
@@ -2250,70 +2361,146 @@ async function handleImportFile(event) {
     //  1. Wrapped backup: { version, sets, headings: [{book, headings:[...]}] }
     //  2. Grouped export: [{book, headings:[...]}]
     //  3. Flat export:    [{text, level, ...}]
-    const groupedOrFlat = (!Array.isArray(data) && Array.isArray(data.headings))
-      ? data.headings
-      : data;
 
-    if (!Array.isArray(groupedOrFlat)) {
-      throw new Error(i18n.t('invalidJson'));
+    const isWrappedBackup = !Array.isArray(data) && Array.isArray(data.sets) && Array.isArray(data.headings);
+
+    if (isWrappedBackup) {
+      // ── Path A: full backup restore ─────────────────────────────────────────
+      // Create each set from the backup and build an old-id → new-id mapping.
+      // This is additive: existing sets and headings are never deleted.
+      const idMap = {};
+      for (const set of data.sets) {
+        const { id: oldId, name, lang, format, customThemes } = set;
+        const newId = await db.addOutlineSet({ name, lang: lang || 'en', format: format || 'traditional', customThemes: customThemes || [] });
+        idMap[oldId] = newId;
+      }
+
+      // Flatten headings from the grouped structure
+      const flatHeadings = (data.headings.length > 0 && Array.isArray(data.headings[0].headings))
+        ? data.headings.flatMap(g => g.headings.map(h => ({ ...h, book: h.book || g.book })))
+        : data.headings;
+
+      statusDiv.textContent = i18n.t('importProgress', flatHeadings.length);
+
+      let imported = 0;
+      let skipped = 0;
+
+      for (const item of flatHeadings) {
+        if (!item.text || !item.level || !item.reference || !item.book) {
+          skipped++;
+          continue;
+        }
+        try {
+          // Use the remapped setId; fall back to currentSetId if mapping is missing
+          const setId = (item.setId != null && idMap[item.setId] != null)
+            ? idMap[item.setId]
+            : currentSetId;
+          await db.addHeading({
+            book:        item.book,
+            reference:   item.reference,
+            level:       item.level,
+            text:        item.text,
+            notes:       item.notes || '',
+            setId,
+            ...(item.tag         ? { tag:         item.tag         } : {}),
+            ...(item.themeKey    ? { themeKey:    item.themeKey    } : {}),
+            ...(item.plotElement ? { plotElement: item.plotElement } : {}),
+            ...(item.position != null ? { position: item.position } : {}),
+          });
+          imported++;
+        } catch (err) {
+          console.error('Error importing heading:', err);
+          skipped++;
+        }
+      }
+
+      // Restore passages (present in v3+ backups)
+      if (Array.isArray(data.passages)) {
+        for (const p of data.passages) {
+          const newSetId = idMap[p.setId];
+          if (newSetId != null) {
+            try {
+              await db.addPassage({ setId: newSetId, book: p.book, startRef: p.startRef, endRef: p.endRef });
+            } catch (err) {
+              console.error('Error importing passage:', err);
+            }
+          }
+        }
+      }
+
+      // Refresh the sets dropdown and headings view
+      await refreshSetSelector();
+      await loadHeadings();
+
+      statusDiv.style.color = '#2e7d32';
+      statusDiv.style.backgroundColor = '#e8f5e9';
+      statusDiv.textContent = skipped > 0
+        ? i18n.t('importSuccessWithSkipped', imported, skipped)
+        : i18n.t('importSuccess', imported);
+
+    } else {
+      // ── Path B: plain export import (grouped or flat array) ─────────────────
+      // All headings are added to the currently active set.
+      const groupedOrFlat = Array.isArray(data) ? data : data.headings;
+
+      if (!Array.isArray(groupedOrFlat)) {
+        throw new Error(i18n.t('invalidJson'));
+      }
+
+      const flatHeadings = (groupedOrFlat.length > 0 && Array.isArray(groupedOrFlat[0].headings))
+        ? groupedOrFlat.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
+        : groupedOrFlat;
+
+      statusDiv.textContent = i18n.t('importProgress', flatHeadings.length);
+
+      let imported = 0;
+      let skipped = 0;
+
+      for (const item of flatHeadings) {
+        if (!item.text || !item.level || !item.reference || !item.book) {
+          skipped++;
+          continue;
+        }
+        try {
+          await db.addHeading({
+            book:      item.book,
+            reference: item.reference,
+            level:     item.level,
+            text:      item.text,
+            notes:     item.notes || '',
+            setId:     currentSetId,
+            ...(item.tag         ? { tag:         item.tag         } : {}),
+            ...(item.themeKey    ? { themeKey:    item.themeKey    } : {}),
+            ...(item.plotElement ? { plotElement: item.plotElement } : {}),
+          });
+          imported++;
+        } catch (err) {
+          console.error('Error importing heading:', err);
+          skipped++;
+        }
+      }
+
+      await loadHeadings();
+
+      statusDiv.style.color = '#2e7d32';
+      statusDiv.style.backgroundColor = '#e8f5e9';
+      statusDiv.textContent = skipped > 0
+        ? i18n.t('importSuccessWithSkipped', imported, skipped)
+        : i18n.t('importSuccess', imported);
     }
 
-    const flatHeadings = (groupedOrFlat.length > 0 && Array.isArray(groupedOrFlat[0].headings))
-      ? groupedOrFlat.flatMap(group => group.headings.map(h => ({ ...h, book: h.book || group.book })))
-      : groupedOrFlat;
-
-    statusDiv.textContent = i18n.t('importProgress', flatHeadings.length);
-
-    // Validate and import each heading
-    let imported = 0;
-    let skipped = 0;
-
-    for (const item of flatHeadings) {
-      // Validate required fields
-      if (!item.text || !item.level || !item.reference || !item.book) {
-        skipped++;
-        continue;
-      }
-      
-      // Add to database
-      try {
-        await db.addHeading({
-          book: item.book,
-          reference: item.reference,
-          level: item.level,
-          text: item.text,
-          notes: item.notes || '',
-          setId: currentSetId
-        });
-        imported++;
-      } catch (err) {
-        console.error('Error importing heading:', err);
-        skipped++;
-      }
-    }
-    
-    // Show success message
-    statusDiv.style.color = '#2e7d32';
-    statusDiv.style.backgroundColor = '#e8f5e9';
-    statusDiv.textContent = skipped > 0
-      ? i18n.t('importSuccessWithSkipped', imported, skipped)
-      : i18n.t('importSuccess', imported);
-    
-    // Reload headings
-    await loadHeadings();
-    
     // Close modal after 2 seconds
     setTimeout(() => {
       closeImportModal();
     }, 2000);
-    
+
   } catch (error) {
     console.error('Import error:', error);
     statusDiv.style.color = '#d32f2f';
     statusDiv.style.backgroundColor = '#ffebee';
     statusDiv.textContent = i18n.t('importError', error.message);
   }
-  
+
   // Reset file input
   event.target.value = '';
 }

@@ -627,5 +627,21 @@
   "passageFormAdd":         { "message": "Đoạn văn mới" },
   "passageFormEdit":        { "message": "Chỉnh sửa đoạn văn" },
   "confirmDeletePassage":   { "message": "Xóa đoạn văn $1?" },
-  "endRefBeforeStartAlert": { "message": "Tham chiếu kết thúc phải sau tham chiếu bắt đầu." }
+  "endRefBeforeStartAlert": { "message": "Tham chiếu kết thúc phải sau tham chiếu bắt đầu." },
+  "customThemesLabel": {
+    "message": "Chủ đề tùy chỉnh (ngoài A–Z):",
+    "description": "Label above the custom-themes tag list in the manage-sets modal"
+  },
+  "customThemePlaceholder": {
+    "message": "Nhãn chủ đề mới",
+    "description": "Placeholder for the custom theme input"
+  },
+  "customThemeAdd": {
+    "message": "Thêm",
+    "description": "Button to add a custom theme label"
+  },
+  "customThemeRemove": {
+    "message": "Xóa",
+    "description": "Tooltip on the × button for removing a custom theme"
+  }
 }

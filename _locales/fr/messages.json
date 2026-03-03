@@ -627,5 +627,21 @@
   "passageFormAdd":         { "message": "Nouveau passage" },
   "passageFormEdit":        { "message": "Modifier le passage" },
   "confirmDeletePassage":   { "message": "Supprimer le passage $1\u00a0?" },
-  "endRefBeforeStartAlert": { "message": "La référence de fin doit être après la référence de début." }
+  "endRefBeforeStartAlert": { "message": "La référence de fin doit être après la référence de début." },
+  "customThemesLabel": {
+    "message": "Thèmes personnalisés (en plus de A–Z) :",
+    "description": "Label above the custom-themes tag list in the manage-sets modal"
+  },
+  "customThemePlaceholder": {
+    "message": "Nouveau thème",
+    "description": "Placeholder for the custom theme input"
+  },
+  "customThemeAdd": {
+    "message": "Ajouter",
+    "description": "Button to add a custom theme label"
+  },
+  "customThemeRemove": {
+    "message": "Supprimer",
+    "description": "Tooltip on the × button for removing a custom theme"
+  }
 }

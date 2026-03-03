@@ -282,7 +282,8 @@ class BibleOutlineDB {
       const store = tx.objectStore('outlineSets');
       const req   = store.getAll();
       req.onsuccess = () => {
-        const sets = req.result;
+        // Normalise records created before customThemes was added
+        const sets = req.result.map(s => ({ customThemes: [], ...s }));
         sets.sort((a, b) => a.name.localeCompare(b.name));
         resolve(sets);
       };
@@ -290,11 +291,11 @@ class BibleOutlineDB {
     });
   }
 
-  async addOutlineSet({ name, lang, format = 'traditional' }) {
+  async addOutlineSet({ name, lang, format = 'traditional', customThemes = [] }) {
     return new Promise((resolve, reject) => {
       const tx    = this.db.transaction(['outlineSets'], 'readwrite');
       const store = tx.objectStore('outlineSets');
-      const req   = store.add({ name, lang, format });
+      const req   = store.add({ name, lang, format, customThemes });
       req.onsuccess = () => resolve(req.result);
       req.onerror   = () => reject(req.error);
     });
@@ -385,6 +386,17 @@ class BibleOutlineDB {
       const store = tx.objectStore('passages');
       const req   = store.delete(id);
       req.onsuccess = () => resolve();
+      req.onerror   = () => reject(req.error);
+    });
+  }
+
+  // Get all passages across all sets (used for backup)
+  async getAllPassages() {
+    return new Promise((resolve, reject) => {
+      const tx    = this.db.transaction(['passages'], 'readonly');
+      const store = tx.objectStore('passages');
+      const req   = store.getAll();
+      req.onsuccess = () => resolve(req.result);
       req.onerror   = () => reject(req.error);
     });
   }

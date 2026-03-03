@@ -1,0 +1,53 @@
+[
+  {
+    "book": "Ps",
+    "bookName": "Psalms",
+    "headings": [
+      {
+        "text": "[The Reality of the Righteous: Does not Stand in the Way of Sinners]",
+        "level": 1,
+        "reference": "Ps.1.1",
+        "book": "Ps",
+        "themeKey": "A",
+        "startRef": "Ps.1.1",
+        "endRef": "Ps.1.2"
+      },
+      {
+        "text": "[The Outcome of the Righteous Way: A Fruitful Tree]",
+        "level": 1,
+        "reference": "Ps.1.3",
+        "book": "Ps",
+        "themeKey": "B",
+        "startRef": "Ps.1.3",
+        "endRef": "Ps.1.3"
+      },
+      {
+        "text": "[The Outcome of the Way of the Wicked: Wind-Driven Chaff]",
+        "level": 1,
+        "reference": "Ps.1.4",
+        "book": "Ps",
+        "themeKey": "B",
+        "startRef": "Ps.1.4",
+        "endRef": "Ps.1.4"
+      },
+      {
+        "text": "[The Reality of the Wicked: Unable to Stand in the Judgment]",
+        "level": 1,
+        "reference": "Ps.1.5",
+        "book": "Ps",
+        "themeKey": "A",
+        "startRef": "Ps.1.5",
+        "endRef": "Ps.1.5"
+      },
+      {
+        "text": "[The Reason: God Knows]",
+        "level": 1,
+        "reference": "Ps.1.6",
+        "book": "Ps",
+        "themeKey": "C",
+        "startRef": "Ps.1.6",
+        "endRef": "Ps.150.6"
+      }
+    ]
+  }
+]
